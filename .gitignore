@@ -86,3 +86,6 @@ typings/
 
 # DynamoDB Local files
 .dynamodb/
+
+# Sqlite database file
+src/database/shapez_gates_db.sqlite
