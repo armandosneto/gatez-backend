@@ -1,9 +1,9 @@
-import { Router, Request, Response } from "express";
+import { Router } from "express";
+import { AuthenticateController } from "../Controllers/AuthenticateController";
 
 const router = Router();
 
-router.get("/", (req: Request, res: Response) => {
-  res.json({ message: "Aqui será o login!" });
-});
+const authenticateController = new AuthenticateController();
 
+router.post("/", authenticateController.login);
 export default router;
