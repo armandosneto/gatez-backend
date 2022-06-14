@@ -1,4 +1,7 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
+import { verify } from "jsonwebtoken";
+import { AppError } from "../Errors/AppError";
+import { ensureAuthenticated } from "../middlewares/ensureAuthenticated";
 import index from "./";
 import login from "./login";
 import user from "./user";

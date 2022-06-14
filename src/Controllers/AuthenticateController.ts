@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { AppError } from "../Errors/AppError";
 import { client } from "../prisma/client";
 import { compare } from "bcryptjs";
+import { sign } from "jsonwebtoken";
 
 class AuthenticateController {
   async login(request: Request, response: Response) {
@@ -13,17 +14,29 @@ class AuthenticateController {
       throw new AppError("email or password is wrong!", 401);
     }
 
-    const userWithoutPassword = {
+    const passwordMatch = await compare(password, user.password);
+
+    if (!passwordMatch) {
+      throw new AppError("email or password is wrong!", 401);
+    }
+
+    const token = sign(
+      {
+        id: user.id,
+        password: user.password,
+      },
+      process.env.JWT_KEY as string,
+      {
+        subject: user.id,
+      }
+    );
+    const data = {
       ...user,
+      token,
       password: undefined,
     };
 
-    const passwordMatch = await compare(password, user.password);
-    if (passwordMatch) {
-      return response.status(200).json(userWithoutPassword);
-    } else {
-      throw new AppError("email or password is wrong!", 401);
-    }
+    return response.status(200).json(data);
   }
 }
 
