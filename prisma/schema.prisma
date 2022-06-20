@@ -8,9 +8,26 @@ datasource db {
 }
 
 model users {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   name       String
-  email      String   @unique
+  email      String    @unique
   password   String
-  created_at DateTime @default(now())
+  created_at DateTime  @default(now())
+  puzzles    puzzles[]
+}
+
+model puzzles {
+  id           Int      @id @default(autoincrement())
+  short_key    String
+  likes        Int      @default(0)
+  downloads    Int      @default(0)
+  completions  Int      @default(0)
+  difficulty   Int?
+  average_time Int?
+  title        String
+  user         users    @relation(fields: [author], references: [id], onDelete: Restrict)
+  author       String
+  completed    Boolean  @default(false)
+  game         String
+  created_at   DateTime @default(now())
 }
