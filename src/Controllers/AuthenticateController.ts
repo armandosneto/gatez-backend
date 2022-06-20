@@ -20,16 +20,9 @@ class AuthenticateController {
       throw new AppError("email or password is wrong!", 401);
     }
 
-    const token = sign(
-      {
-        id: user.id,
-        password: user.password,
-      },
-      process.env.JWT_KEY as string,
-      {
-        subject: user.id,
-      }
-    );
+    const token = sign({}, process.env.JWT_KEY as string, {
+      subject: user.id,
+    });
     const data = {
       ...user,
       token,

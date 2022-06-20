@@ -20,20 +20,17 @@ export async function ensureAuthenticated(
   try {
     const decripted = verify(token, process.env.JWT_KEY as string);
 
-    const { id, password, sub } = decripted as {
-      id: string;
+    const { password, sub } = decripted as {
       password: string;
       sub: string;
     };
 
-    const user = await client.users.findFirst({ where: { id } });
+    const user = await client.users.findFirst({ where: { id: sub } });
     if (!user) {
       throw new Error();
     }
 
-    if (password !== user.password) {
-      throw new Error();
-    }
+    response.locals.userId = sub;
 
     return next();
   } catch (err) {
