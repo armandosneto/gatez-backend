@@ -4,7 +4,7 @@ import { client } from "../prisma/client";
 
 type category = "new" | "top-rated" | "mine";
 
-interface PuzzleMetadata {
+interface Puzzle {
   id: number;
   shortKey: string;
   likes: number;
@@ -15,7 +15,16 @@ interface PuzzleMetadata {
   title: string;
   author: string;
   completed: boolean;
+  data: string;
 }
+
+type PuzzleMetadata = Omit<Puzzle, "data">;
+
+type PuzzleSubmit = Pick<Puzzle, "shortKey" | "title" | "data">;
+type PuzzleSearch = Pick<Puzzle, "difficulty"> & {
+  searchTerm: string;
+  duration: number;
+};
 
 class PuzzlesController {
   async list(request: Request, response: Response) {
@@ -67,6 +76,29 @@ class PuzzlesController {
       default:
         throw new Error("Invalid category!");
     }
+  }
+
+  async search(request: Request, response: Response) {
+    //TODO search puzzles
+  }
+
+  async submit(request: Request, response: Response) {
+    const { shortKey, title, data } = request.body as PuzzleSubmit;
+
+    const puzzle = await client.puzzles.create({
+      data: {
+        short_key: shortKey,
+        title,
+        data,
+        author: response.locals.userId,
+      },
+    });
+
+    return response.status(201).json(puzzle);
+  }
+
+  async complete(request: Request, response: Response) {
+    //TODO complete puzzle
   }
 }
 

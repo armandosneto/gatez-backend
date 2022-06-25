@@ -28,6 +28,6 @@ model puzzles {
   user         users    @relation(fields: [author], references: [id], onDelete: Restrict)
   author       String
   completed    Boolean  @default(false)
-  game         String
+  data         String
   created_at   DateTime @default(now())
 }
