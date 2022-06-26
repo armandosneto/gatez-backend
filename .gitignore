@@ -89,3 +89,6 @@ typings/
 
 # Sqlite database file
 src/database/shapez_gates_db.sqlite
+src/database/*.sqlite-journal
+
+.idea/

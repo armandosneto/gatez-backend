@@ -2,17 +2,14 @@ import { Request, Response } from "express";
 import { hash } from "bcryptjs";
 import { client } from "../prisma/client";
 import { AppError } from "../Errors/AppError";
+import { User } from "@prisma/client";
 
-interface User {
-  name: string;
-  email: string;
-  password: string;
-}
+
 class UserController {
   async create(request: Request, response: Response) {
     const { name, email, password } = request.body as User;
 
-    const userAlreadyExists = await client.users.findFirst({
+    const userAlreadyExists = await client.user.findFirst({
       where: {
         email,
       },
@@ -24,7 +21,7 @@ class UserController {
 
     const passwordHash = await hash(password, 8);
 
-    const user = await client.users.create({
+    const user = await client.user.create({
       data: {
         name,
         email,

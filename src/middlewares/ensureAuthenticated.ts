@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError } from "../Errors/AppError";
 import { verify } from "jsonwebtoken";
-import { compare } from "bcryptjs";
 import { client } from "../prisma/client";
 
 export async function ensureAuthenticated(
@@ -20,12 +19,11 @@ export async function ensureAuthenticated(
   try {
     const decripted = verify(token, process.env.JWT_KEY as string);
 
-    const { password, sub } = decripted as {
-      password: string;
+    const { sub } = decripted as {
       sub: string;
     };
 
-    const user = await client.users.findFirst({ where: { id: sub } });
+    const user = await client.user.findFirst({ where: { id: sub } });
     if (!user) {
       throw new Error();
     }

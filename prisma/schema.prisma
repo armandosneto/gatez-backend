@@ -7,27 +7,51 @@ datasource db {
   url      = "file:../src/database/shapez_gates_db.sqlite"
 }
 
-model users {
-  id         String    @id @default(uuid())
-  name       String
-  email      String    @unique
-  password   String
-  created_at DateTime  @default(now())
-  puzzles    puzzles[]
+model User {
+  id               String                 @id @default(uuid())
+  name             String
+  email            String                 @unique
+  password         String
+  createdAt        DateTime               @default(now())
+  puzzles          Puzzle[]
+  completedPuzzles PuzzleCompleteData[]
+
+  @@map("users")
 }
 
-model puzzles {
-  id           Int      @id @default(autoincrement())
-  short_key    String
-  likes        Int      @default(0)
-  downloads    Int      @default(0)
-  completions  Int      @default(0)
-  difficulty   Int?
-  average_time Int?
-  title        String
-  user         users    @relation(fields: [author], references: [id], onDelete: Restrict)
-  author       String
-  completed    Boolean  @default(false)
-  data         String
-  created_at   DateTime @default(now())
+model Puzzle {
+  id                     Int                    @id @default(autoincrement())
+  shortKey               String
+  likes                  Int                    @default(0)
+  downloads              Int                    @default(0)
+  difficulty             Int?
+  averageTime            Int?
+  title                  String
+  user                   User?                  @relation(fields: [author], references: [id], onDelete: Restrict)
+  author                 String?
+  data                   String
+  description            String
+  afterCompletingMessage String?
+  minimumComponents      Int
+  maximumComponents      Int?
+  // minimumNands Int TODO implement counting
+  createdAt              DateTime               @default(now())
+  completions            PuzzleCompleteData[]
+
+  @@map("puzzles")
+}
+
+model PuzzleCompleteData {
+  id             String   @id @default(uuid())
+  user           User     @relation(fields: [userId], references: [id])
+  userId         String
+  puzzle         Puzzle   @relation(fields: [puzzleId], references: [id])
+  puzzleId       Int
+  timeTaken      Int
+  componentsUsed Int
+  // nandsUsed    Int TODO implement NAND counting
+  completed      Boolean
+  createdAt      DateTime @default(now())
+
+  @@map("puzzle_complete_data")
 }
