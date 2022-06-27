@@ -12,12 +12,21 @@ type category =
   | "mine"
   | "completed";
 
-type PuzzleMetadata = Omit<Puzzle, "data">;
+type PuzzleMetadata = Omit<Puzzle, "data"> & {
+  completed?: boolean;
+  liked?: boolean;
+};
 
 type PuzzleSubmit = Pick<
   Puzzle,
   "shortKey" | "title" | "data" | "description" | "minimumComponents"
 >;
+
+type PuzzleSearch = Pick<Puzzle, "difficulty"> & {
+  searchTerm: string;
+  duration: number;
+  includeCompleted: boolean;
+};
 
 function findPuzzleCompleteData(puzzleId: number, userId: string): Promise<PuzzleCompleteData | null> {
   return client.puzzleCompleteData.findFirst({
@@ -33,14 +42,14 @@ function onlyMetadata(puzzles: Puzzle[], userId: string): Promise<PuzzleMetadata
     const completeData = await findPuzzleCompleteData(puzzle.id, userId);
 
     const { data, ...incompleteData } = puzzle;
-    const metaData = incompleteData as any;
+    const metaData = incompleteData as PuzzleMetadata;
     if (completeData) {
-      metaData.completed = completeData.completed;
+      metaData["completed"] = completeData.completed;
       metaData.liked = completeData.liked;
     }
     else {
       metaData.completed = false;
-      metaData.like = false;
+      metaData.liked = false;
     }
 
     return metaData;
@@ -74,6 +83,7 @@ class PuzzlesController {
             completions: {
               every: {
                 userId: response.locals.userId,
+                completed: true,
               },
             },
           },
@@ -110,7 +120,7 @@ class PuzzlesController {
   }
 
   async search(request: Request, response: Response) {
-    const { searchTerm, duration, difficulty } = request.query;
+    const { searchTerm, duration, difficulty, includeCompleted } = request.body as PuzzleSearch;
 
     const puzzles = await client.puzzle.findMany({
       where: {
@@ -126,7 +136,8 @@ class PuzzlesController {
             },
           },
         ],
-        difficulty: difficulty as string,
+        // TODO implement difficulty calculations and search
+        // difficulty: difficulty as string,
       },
     });
 
@@ -134,7 +145,12 @@ class PuzzlesController {
       return response.status(404).send();
     }
 
-    return response.status(200).json(onlyMetadata(puzzles));
+    let metadata = await onlyMetadata(puzzles, response.locals.userId);
+    if (!includeCompleted) {
+      metadata = metadata.filter(puzzle => puzzle.completed == false);
+    }
+
+    return response.status(200).json(metadata);
   }
 
   async report(request: Request, response: Response) {
@@ -201,6 +217,7 @@ class PuzzlesController {
         timeTaken: time,
         liked,
         componentsUsed,
+        completed: true,
       }
     });
 
