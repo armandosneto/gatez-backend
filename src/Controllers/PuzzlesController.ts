@@ -3,11 +3,22 @@ import { decompressFromBase64 } from "@prisma/client/runtime";
 import { Request, Response } from "express";
 import { client } from "../prisma/client";
 
-type category = "official" | "top-rated" | "new" | "easy" | "medium" | "hard" | "mine" | "completed";
+type category =
+  | "official"
+  | "top-rated"
+  | "new"
+  | "easy"
+  | "medium"
+  | "hard"
+  | "mine"
+  | "completed";
 
 type PuzzleMetadata = Omit<Puzzle, "data">;
 
-type PuzzleSubmit = Pick<Puzzle, "shortKey" | "title" | "data" | "description" | "minimumComponents">;
+type PuzzleSubmit = Pick<
+  Puzzle,
+  "shortKey" | "title" | "data" | "description" | "minimumComponents"
+>;
 type PuzzleSearch = Pick<Puzzle, "difficulty"> & {
   searchTerm: string;
   duration: number;
@@ -31,7 +42,7 @@ class PuzzlesController {
         const officialPuzzles = await client.puzzle.findMany({
           where: {
             user: null,
-          }
+          },
         });
         return response.status(200).json(onlyMetadata(officialPuzzles));
 
@@ -41,9 +52,9 @@ class PuzzlesController {
             completions: {
               every: {
                 userId: response.locals.userId,
-              } 
-            }
-          }
+              },
+            },
+          },
         });
         return response.status(200).json(onlyMetadata(completedPuzzles));
 
@@ -70,7 +81,7 @@ class PuzzlesController {
           },
         });
         return response.status(200).json(onlyMetadata(topRatedPuzzles));
-        
+
       default:
         throw new Error("Invalid category!");
     }
@@ -80,8 +91,34 @@ class PuzzlesController {
     //TODO search puzzles
   }
 
+  async report(request: Request, response: Response) {
+    const puzzleId = request.params.puzzleId;
+
+    // verify if request.body has reason
+    const reason = request.body.reason;
+
+    if (!reason) {
+      return response.status(400).send("Missing reason");
+    }
+
+    const report = await client.puzzleReport.create({
+      data: {
+        puzzleId: +puzzleId,
+        userId: response.locals.userId,
+        reason: request.body.reason,
+      },
+    });
+
+    if (!report) {
+      return response.status(500).send("Failed to report puzzle");
+    }
+
+    return response.status(201).json(report);
+  }
+
   async submit(request: Request, response: Response) {
-    const { shortKey, title, data, description, minimumComponents } = request.body as PuzzleSubmit;
+    const { shortKey, title, data, description, minimumComponents } =
+      request.body as PuzzleSubmit;
 
     const puzzle = await client.puzzle.create({
       data: {
@@ -101,13 +138,13 @@ class PuzzlesController {
     //TODO complete puzzle
   }
 
-  async download(request: Request,  response: Response) {
+  async download(request: Request, response: Response) {
     const puzzleId = request.params.puzzleId;
 
     const puzzle = await client.puzzle.findFirst({
       where: {
         id: +puzzleId,
-      }
+      },
     });
 
     if (!puzzle) {
@@ -116,7 +153,9 @@ class PuzzlesController {
 
     const dataJson = JSON.parse(decompressFromBase64(puzzle.data));
 
-    return response.status(200).json({ game: dataJson, meta: onlyMetadata([puzzle])[0] });
+    return response
+      .status(200)
+      .json({ game: dataJson, meta: onlyMetadata([puzzle])[0] });
   }
 }
 

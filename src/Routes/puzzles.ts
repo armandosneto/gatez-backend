@@ -11,5 +11,6 @@ router.get("/download/:puzzleId", puzzlesController.download);
 
 router.post("/submit", puzzlesController.submit);
 router.post("/complete", puzzlesController.complete);
+router.post("/report/:puzzleId", puzzlesController.report);
 
 export default router;

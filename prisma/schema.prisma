@@ -8,26 +8,27 @@ datasource db {
 }
 
 model User {
-  id               String                 @id @default(uuid())
+  id               String               @id @default(uuid())
   name             String
-  email            String                 @unique
+  email            String               @unique
   password         String
-  createdAt        DateTime               @default(now())
+  createdAt        DateTime             @default(now())
   puzzles          Puzzle[]
   completedPuzzles PuzzleCompleteData[]
+  puzzlesResports  PuzzleReport[]
 
   @@map("users")
 }
 
 model Puzzle {
-  id                     Int                    @id @default(autoincrement())
+  id                     Int                  @id @default(autoincrement())
   shortKey               String
-  likes                  Int                    @default(0)
-  downloads              Int                    @default(0)
-  difficulty             Int?
+  likes                  Int                  @default(0)
+  downloads              Int                  @default(0)
+  difficulty             Decimal?
   averageTime            Int?
   title                  String
-  user                   User?                  @relation(fields: [author], references: [id], onDelete: Restrict)
+  user                   User?                @relation(fields: [author], references: [id], onDelete: Restrict)
   author                 String?
   data                   String
   description            String
@@ -35,8 +36,9 @@ model Puzzle {
   minimumComponents      Int
   maximumComponents      Int?
   // minimumNands Int TODO implement counting
-  createdAt              DateTime               @default(now())
+  createdAt              DateTime             @default(now())
   completions            PuzzleCompleteData[]
+  puzzleReports          PuzzleReport[]
 
   @@map("puzzles")
 }
@@ -47,11 +49,23 @@ model PuzzleCompleteData {
   userId         String
   puzzle         Puzzle   @relation(fields: [puzzleId], references: [id])
   puzzleId       Int
-  timeTaken      Int
-  componentsUsed Int
+  timeTaken      Int?
+  componentsUsed Int?
   // nandsUsed    Int TODO implement NAND counting
   completed      Boolean
   createdAt      DateTime @default(now())
 
   @@map("puzzle_complete_data")
+}
+
+model PuzzleReport {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  puzzle    Puzzle   @relation(fields: [puzzleId], references: [id])
+  puzzleId  Int
+  createdAt DateTime @default(now())
+  reason    String
+
+  @@map("puzzle_reports")
 }

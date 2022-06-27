@@ -13,7 +13,7 @@ CREATE TABLE "puzzles" (
     "shortKey" TEXT NOT NULL,
     "likes" INTEGER NOT NULL DEFAULT 0,
     "downloads" INTEGER NOT NULL DEFAULT 0,
-    "difficulty" INTEGER,
+    "difficulty" DECIMAL,
     "averageTime" INTEGER,
     "title" TEXT NOT NULL,
     "author" TEXT,
@@ -31,12 +31,23 @@ CREATE TABLE "puzzle_complete_data" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
     "puzzleId" INTEGER NOT NULL,
-    "timeTaken" INTEGER NOT NULL,
-    "componentsUsed" INTEGER NOT NULL,
+    "timeTaken" INTEGER,
+    "componentsUsed" INTEGER,
     "completed" BOOLEAN NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "puzzle_complete_data_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "puzzle_complete_data_puzzleId_fkey" FOREIGN KEY ("puzzleId") REFERENCES "puzzles" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "puzzle_reports" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "puzzleId" INTEGER NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "reason" TEXT NOT NULL,
+    CONSTRAINT "puzzle_reports_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "puzzle_reports_puzzleId_fkey" FOREIGN KEY ("puzzleId") REFERENCES "puzzles" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 -- CreateIndex
