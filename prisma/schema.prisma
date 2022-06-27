@@ -53,6 +53,7 @@ model PuzzleCompleteData {
   componentsUsed Int?
   // nandsUsed    Int TODO implement NAND counting
   completed      Boolean
+  liked          Boolean
   createdAt      DateTime @default(now())
 
   @@map("puzzle_complete_data")

@@ -34,6 +34,7 @@ CREATE TABLE "puzzle_complete_data" (
     "timeTaken" INTEGER,
     "componentsUsed" INTEGER,
     "completed" BOOLEAN NOT NULL,
+    "liked" BOOLEAN NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "puzzle_complete_data_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "puzzle_complete_data_puzzleId_fkey" FOREIGN KEY ("puzzleId") REFERENCES "puzzles" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
