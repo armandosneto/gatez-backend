@@ -19,10 +19,6 @@ type PuzzleSubmit = Pick<
   Puzzle,
   "shortKey" | "title" | "data" | "description" | "minimumComponents"
 >;
-type PuzzleSearch = Pick<Puzzle, "difficulty"> & {
-  searchTerm: string;
-  duration: number;
-};
 
 function onlyMetadata(puzzles: Puzzle[]) {
   const metadata: PuzzleMetadata[] = puzzles.map((puzzle) => {
@@ -88,7 +84,31 @@ class PuzzlesController {
   }
 
   async search(request: Request, response: Response) {
-    //TODO search puzzles
+    const { searchTerm, duration, difficulty } = request.query;
+
+    const puzzles = await client.puzzle.findMany({
+      where: {
+        OR: [
+          {
+            title: {
+              contains: searchTerm as string,
+            },
+          },
+          {
+            description: {
+              contains: searchTerm as string,
+            },
+          },
+        ],
+        difficulty: difficulty as string,
+      },
+    });
+
+    if (!puzzles) {
+      return response.status(404).send();
+    }
+
+    return response.status(200).json(onlyMetadata(puzzles));
   }
 
   async report(request: Request, response: Response) {
