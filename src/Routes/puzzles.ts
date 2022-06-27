@@ -13,4 +13,6 @@ router.post("/submit", puzzlesController.submit);
 router.post("/complete", puzzlesController.complete);
 router.post("/report/:puzzleId", puzzlesController.report);
 
+router.delete("/delete/:puzzleId", puzzlesController.delete);
+
 export default router;

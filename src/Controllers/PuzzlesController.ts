@@ -104,10 +104,6 @@ class PuzzlesController {
       },
     });
 
-    if (!puzzles) {
-      return response.status(404).send();
-    }
-
     return response.status(200).json(onlyMetadata(puzzles));
   }
 
@@ -176,6 +172,30 @@ class PuzzlesController {
     return response
       .status(200)
       .json({ game: dataJson, meta: onlyMetadata([puzzle])[0] });
+  }
+
+  async delete(request: Request, response: Response) {
+    const puzzleId = +request.params.puzzleId;
+    const user = response.locals.userId;
+
+    const puzzle = await client.puzzle.findFirst({
+      where: {
+        id: puzzleId,
+        author: user,
+      },
+    });
+
+    if (!puzzle) {
+      return response.status(404).send();
+    }
+
+    await client.puzzle.delete({
+      where: {
+        id: puzzleId,
+      },
+    });
+
+    return response.status(200).send();
   }
 }
 
