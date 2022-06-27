@@ -7,11 +7,11 @@ import { User } from "@prisma/client";
 
 class UserController {
   async create(request: Request, response: Response) {
-    const { name, email, password } = request.body as User;
+    const { name, password } = request.body as User;
 
     const userAlreadyExists = await client.user.findFirst({
       where: {
-        email,
+        name,
       },
     });
 
@@ -24,7 +24,6 @@ class UserController {
     const user = await client.user.create({
       data: {
         name,
-        email,
         password: passwordHash,
       } as User,
     });

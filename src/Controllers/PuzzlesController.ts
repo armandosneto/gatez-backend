@@ -1,6 +1,7 @@
 import { Puzzle, PuzzleCompleteData } from "@prisma/client";
 import { Request, Response } from "express";
 import { client } from "../prisma/client";
+import {AppError} from "../Errors/AppError";
 
 type category =
   | "official"
@@ -80,7 +81,7 @@ class PuzzlesController {
       case "completed":
         const completedPuzzles = await client.puzzle.findMany({
           where: {
-            completions: {
+            completionsData: {
               every: {
                 userId: response.locals.userId,
                 completed: true,
@@ -182,12 +183,24 @@ class PuzzlesController {
     const { shortKey, title, data, description, minimumComponents } =
       request.body as PuzzleSubmit;
 
+    const user = await client.user.findUnique({
+      where: {
+        id: response.locals.userId,
+      }
+    });
+
+    // Never should happen
+    if (user == null) {
+      throw new AppError("Authentication inconsistency!", 401);
+    }
+
     const puzzle = await client.puzzle.create({
       data: {
         shortKey,
         title,
         data,
-        author: response.locals.userId,
+        author: user.id,
+        authorName: user.name,
         description: "placeholder",
         minimumComponents: 1,
       },
@@ -207,7 +220,7 @@ class PuzzlesController {
 
     const { time, liked, componentsUsed = 0 } = request.body;
 
-    // In reality, we only have one. Maybe add a constraint
+    // In reality, we only have one
     const completeData = await client.puzzleCompleteData.updateMany({
       where: {
        puzzleId,
@@ -228,6 +241,7 @@ class PuzzlesController {
       },
       data: {
         likes: puzzle.likes + liked ? 1 : 0,
+        completions: puzzle.completions + 1,
       },
     });
 
@@ -285,7 +299,7 @@ class PuzzlesController {
     });
 
     if (!puzzle) {
-      return response.status(404).send();
+      return response.status(200).json({ success: false });
     }
 
     await client.puzzle.delete({
@@ -294,7 +308,7 @@ class PuzzlesController {
       },
     });
 
-    return response.status(200).send();
+    return response.status(200).json({ success: true });
   }
 }
 

@@ -9,8 +9,9 @@ datasource db {
 
 model User {
   id               String               @id @default(uuid())
-  name             String
-  email            String               @unique
+  name             String               @unique
+  // TODO maybe add email support in the future
+  //  email            String               @unique
   password         String
   createdAt        DateTime             @default(now())
   puzzles          Puzzle[]
@@ -30,6 +31,7 @@ model Puzzle {
   title                  String
   user                   User?                @relation(fields: [author], references: [id], onDelete: Restrict)
   author                 String?
+  authorName             String               @default("official")
   data                   String
   description            String
   afterCompletingMessage String?
@@ -37,7 +39,8 @@ model Puzzle {
   maximumComponents      Int?
   // minimumNands Int TODO implement counting
   createdAt              DateTime             @default(now())
-  completions            PuzzleCompleteData[]
+  completions            Int                  @default(0)
+  completionsData        PuzzleCompleteData[]
   puzzleReports          PuzzleReport[]
 
   @@map("puzzles")
@@ -45,9 +48,9 @@ model Puzzle {
 
 model PuzzleCompleteData {
   id             String   @id @default(uuid())
-  user           User     @relation(fields: [userId], references: [id])
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         String
-  puzzle         Puzzle   @relation(fields: [puzzleId], references: [id])
+  puzzle         Puzzle   @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
   puzzleId       Int
   timeTaken      Int?
   componentsUsed Int?
@@ -56,14 +59,15 @@ model PuzzleCompleteData {
   liked          Boolean  @default(false)
   createdAt      DateTime @default(now())
 
+  @@unique([userId, puzzleId])
   @@map("puzzle_complete_data")
 }
 
 model PuzzleReport {
   id        String   @id @default(uuid())
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
-  puzzle    Puzzle   @relation(fields: [puzzleId], references: [id])
+  puzzle    Puzzle   @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
   puzzleId  Int
   createdAt DateTime @default(now())
   reason    String
