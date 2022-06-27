@@ -14,7 +14,7 @@ export async function ensureAuthenticated(
     throw new AppError("JWT token is missing!", 401);
   }
 
-  const [, token] = authToken.split(" ");
+  const [, token = authToken] = authToken.split(" ");
 
   try {
     const decripted = verify(token, process.env.JWT_KEY as string);

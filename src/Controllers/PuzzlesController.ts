@@ -1,5 +1,4 @@
-import { Puzzle } from "@prisma/client";
-import { decompressFromBase64 } from "@prisma/client/runtime";
+import { Puzzle, PuzzleCompleteData } from "@prisma/client";
 import { Request, Response } from "express";
 import { client } from "../prisma/client";
 
@@ -24,13 +23,40 @@ type PuzzleSearch = Pick<Puzzle, "difficulty"> & {
   duration: number;
 };
 
-function onlyMetadata(puzzles: Puzzle[]) {
-  const metadata: PuzzleMetadata[] = puzzles.map((puzzle) => {
-    const { data, ...metaData } = puzzle;
-    return metaData;
+function findPuzzleCompleteData(puzzleId: number, userId: string): Promise<PuzzleCompleteData | null> {
+  return client.puzzleCompleteData.findFirst({
+    where: {
+      puzzleId,
+      userId,
+    }
   });
+}
 
-  return metadata;
+function onlyMetadata(puzzles: Puzzle[], userId: string): Promise<PuzzleMetadata[]> {
+  return Promise.all(puzzles.map(async (puzzle) => {
+    const completeData = await findPuzzleCompleteData(puzzle.id, userId);
+
+    const { data, ...incompleteData } = puzzle;
+    const metaData = incompleteData as any;
+    if (completeData) {
+      metaData.completed = completeData.completed;
+      metaData.liked = completeData.liked;
+    }
+    else {
+      metaData.completed = false;
+      metaData.like = false;
+    }
+
+    return metaData;
+  }));
+}
+
+function findPuzzleById(puzzleId: number): Promise<Puzzle | null> {
+  return client.puzzle.findFirst({
+    where: {
+      id: puzzleId,
+    }
+  });
 }
 
 class PuzzlesController {
@@ -44,7 +70,7 @@ class PuzzlesController {
             user: null,
           },
         });
-        return response.status(200).json(onlyMetadata(officialPuzzles));
+        return response.status(200).json(await onlyMetadata(officialPuzzles, response.locals.userId));
 
       case "completed":
         const completedPuzzles = await client.puzzle.findMany({
@@ -56,7 +82,7 @@ class PuzzlesController {
             },
           },
         });
-        return response.status(200).json(onlyMetadata(completedPuzzles));
+        return response.status(200).json(await onlyMetadata(completedPuzzles, response.locals.userId));
 
       case "mine":
         const myPuzzles = await client.puzzle.findMany({
@@ -64,7 +90,7 @@ class PuzzlesController {
             author: response.locals.userId,
           },
         });
-        return response.status(200).json(onlyMetadata(myPuzzles));
+        return response.status(200).json(await onlyMetadata(myPuzzles, response.locals.userId));
 
       case "new":
         const newPuzzles = await client.puzzle.findMany({
@@ -72,7 +98,7 @@ class PuzzlesController {
             createdAt: "desc",
           },
         });
-        return response.status(200).json(onlyMetadata(newPuzzles));
+        return response.status(200).json(await onlyMetadata(newPuzzles, response.locals.userId));
 
       case "top-rated":
         const topRatedPuzzles = await client.puzzle.findMany({
@@ -80,7 +106,7 @@ class PuzzlesController {
             likes: "desc",
           },
         });
-        return response.status(200).json(onlyMetadata(topRatedPuzzles));
+        return response.status(200).json(await onlyMetadata(topRatedPuzzles, response.locals.userId));
 
       default:
         throw new Error("Invalid category!");
@@ -135,27 +161,79 @@ class PuzzlesController {
   }
 
   async complete(request: Request, response: Response) {
-    //TODO complete puzzle
-  }
+    const puzzleId: number = +request.params.puzzleId;
 
-  async download(request: Request, response: Response) {
-    const puzzleId = request.params.puzzleId;
-
-    const puzzle = await client.puzzle.findFirst({
-      where: {
-        id: +puzzleId,
-      },
-    });
+    const puzzle = await findPuzzleById(puzzleId);
 
     if (!puzzle) {
       return response.status(404).send();
     }
 
-    const dataJson = JSON.parse(decompressFromBase64(puzzle.data));
+    const { time, liked, componentsUsed = 0 } = request.body;
+
+    // In reality, we only have one. Maybe add a constraint
+    const completeData = await client.puzzleCompleteData.updateMany({
+      where: {
+       puzzleId,
+       userId: response.locals.userId,
+      },
+      data: {
+        timeTaken: time,
+        liked,
+        componentsUsed,
+      }
+    });
+
+    // TODO update other puzzle proprieties
+    await client.puzzle.update({
+      where: {
+        id: puzzleId
+      },
+      data: {
+        likes: puzzle.likes + liked ? 1 : 0,
+      },
+    });
+
+    return response.status(200).json(completeData);
+  }
+
+  async download(request: Request, response: Response) {
+    const puzzleId = +request.params.puzzleId;
+
+    const puzzle = await findPuzzleById(puzzleId);
+
+    if (!puzzle) {
+      return response.status(404).send();
+    }
+
+    const userId = response.locals.userId;
+    const completeData = await findPuzzleCompleteData(puzzleId, userId);
+
+    if (!completeData) {
+      await client.puzzleCompleteData.create({
+        data: {
+          userId,
+          puzzleId,
+        },
+      });
+
+      puzzle.downloads++
+
+      await client.puzzle.update({
+        where: {
+          id: puzzleId
+        },
+        data: {
+          downloads: puzzle.downloads,
+        },
+      });
+    }
+
+    const { data, ...metaData } = puzzle;
 
     return response
       .status(200)
-      .json({ game: dataJson, meta: onlyMetadata([puzzle])[0] });
+      .json({ game: data, meta: metaData });
   }
 }
 
