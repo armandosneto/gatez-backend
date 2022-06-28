@@ -6,9 +6,9 @@ import { sign } from "jsonwebtoken";
 
 class AuthenticateController {
   async login(request: Request, response: Response) {
-    const { email, password } = request.body;
+    const { name, password } = request.body;
 
-    const user = await client.user.findFirst({ where: { email } });
+    const user = await client.user.findFirst({ where: { name } });
 
     if (!user) {
       throw new AppError("email or password is wrong!", 401);

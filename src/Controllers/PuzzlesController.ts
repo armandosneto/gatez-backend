@@ -38,12 +38,14 @@ function findPuzzleCompleteData(puzzleId: number, userId: string): Promise<Puzzl
   });
 }
 
+// TODO maybe get metadata by joins
 function onlyMetadata(puzzles: Puzzle[], userId: string): Promise<PuzzleMetadata[]> {
   return Promise.all(puzzles.map(async (puzzle) => {
     const completeData = await findPuzzleCompleteData(puzzle.id, userId);
 
     const { data, ...incompleteData } = puzzle;
     const metaData = incompleteData as PuzzleMetadata;
+
     if (completeData) {
       metaData["completed"] = completeData.completed;
       metaData.liked = completeData.liked;
@@ -82,7 +84,7 @@ class PuzzlesController {
         const completedPuzzles = await client.puzzle.findMany({
           where: {
             completionsData: {
-              every: {
+              some: {
                 userId: response.locals.userId,
                 completed: true,
               },
