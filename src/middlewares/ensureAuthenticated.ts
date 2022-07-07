@@ -17,9 +17,9 @@ export async function ensureAuthenticated(
   const [, token = authToken] = authToken.split(" ");
 
   try {
-    const decripted = verify(token, process.env.JWT_KEY as string);
+    const decrypted = verify(token, process.env.JWT_KEY as string);
 
-    const { sub } = decripted as {
+    const { sub } = decrypted as {
       sub: string;
     };
 

@@ -13,4 +13,6 @@ router.post("/complete/:puzzleId", puzzlesController.complete);
 router.post("/report/:puzzleId", puzzlesController.report);
 router.post("/search", puzzlesController.search);
 
+router.delete("/delete/:puzzleId", puzzlesController.delete);
+
 export default router;

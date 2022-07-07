@@ -1,6 +1,7 @@
 import { Puzzle, PuzzleCompleteData } from "@prisma/client";
 import { Request, Response } from "express";
 import { client } from "../prisma/client";
+import {AppError} from "../Errors/AppError";
 
 type category =
   | "official"
@@ -37,12 +38,14 @@ function findPuzzleCompleteData(puzzleId: number, userId: string): Promise<Puzzl
   });
 }
 
+// TODO maybe get metadata by joins
 function onlyMetadata(puzzles: Puzzle[], userId: string): Promise<PuzzleMetadata[]> {
   return Promise.all(puzzles.map(async (puzzle) => {
     const completeData = await findPuzzleCompleteData(puzzle.id, userId);
 
     const { data, ...incompleteData } = puzzle;
     const metaData = incompleteData as PuzzleMetadata;
+
     if (completeData) {
       metaData["completed"] = completeData.completed;
       metaData.liked = completeData.liked;
@@ -80,8 +83,8 @@ class PuzzlesController {
       case "completed":
         const completedPuzzles = await client.puzzle.findMany({
           where: {
-            completions: {
-              every: {
+            completionsData: {
+              some: {
                 userId: response.locals.userId,
                 completed: true,
               },
@@ -182,12 +185,24 @@ class PuzzlesController {
     const { shortKey, title, data, description, minimumComponents } =
       request.body as PuzzleSubmit;
 
+    const user = await client.user.findUnique({
+      where: {
+        id: response.locals.userId,
+      }
+    });
+
+    // Never should happen
+    if (user == null) {
+      throw new AppError("Authentication inconsistency!", 401);
+    }
+
     const puzzle = await client.puzzle.create({
       data: {
         shortKey,
         title,
         data,
-        author: response.locals.userId,
+        author: user.id,
+        authorName: user.name,
         description: "placeholder",
         minimumComponents: 1,
       },
@@ -207,7 +222,7 @@ class PuzzlesController {
 
     const { time, liked, componentsUsed = 0 } = request.body;
 
-    // In reality, we only have one. Maybe add a constraint
+    // In reality, we only have one
     const completeData = await client.puzzleCompleteData.updateMany({
       where: {
        puzzleId,
@@ -228,6 +243,7 @@ class PuzzlesController {
       },
       data: {
         likes: puzzle.likes + liked ? 1 : 0,
+        completions: puzzle.completions + 1,
       },
     });
 
@@ -271,6 +287,30 @@ class PuzzlesController {
     return response
       .status(200)
       .json({ game: data, meta: metaData });
+  }
+
+  async delete(request: Request, response: Response) {
+    const puzzleId = +request.params.puzzleId;
+    const user = response.locals.userId;
+
+    const puzzle = await client.puzzle.findFirst({
+      where: {
+        id: puzzleId,
+        author: user,
+      },
+    });
+
+    if (!puzzle) {
+      return response.status(200).json({ success: false });
+    }
+
+    await client.puzzle.delete({
+      where: {
+        id: puzzleId,
+      },
+    });
+
+    return response.status(200).json({ success: true });
   }
 }
 
