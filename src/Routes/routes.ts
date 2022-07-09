@@ -7,6 +7,7 @@ import puzzles from "./puzzles";
 
 const router = Router();
 
+// TODO add appropriate validations to all endpoints
 router.use("/v1/", index);
 router.use("/v1/login", login);
 router.use("/v1/user", user);

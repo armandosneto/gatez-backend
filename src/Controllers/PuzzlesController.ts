@@ -1,7 +1,7 @@
 import { Puzzle, PuzzleCompleteData } from "@prisma/client";
 import { Request, Response } from "express";
 import { client } from "../prisma/client";
-import {AppError} from "../Errors/AppError";
+import { AppError } from "../Errors/AppError";
 
 type category =
   | "official"
@@ -28,6 +28,8 @@ type PuzzleSearch = Pick<Puzzle, "difficulty"> & {
   duration: number;
   includeCompleted: boolean;
 };
+
+type Difficulty = 1 | 2 | 3;
 
 class PuzzlesController {
   async list(request: Request, response: Response) {
@@ -101,7 +103,7 @@ class PuzzlesController {
             },
           },
         ],
-        // TODO implement difficulty calculations and search
+        // TODO implement difficulty search
         // difficulty: difficulty as string,
       },
     });
@@ -167,6 +169,7 @@ class PuzzlesController {
         authorName: user.name,
         description: "placeholder",
         minimumComponents: 1,
+        minimumNands: 1,
       },
     });
 
@@ -182,18 +185,20 @@ class PuzzlesController {
       return response.status(404).send();
     }
 
-    const { time, liked, componentsUsed = 0 } = request.body;
+    const { time, liked, componentsUsed = 0, nandsUsed = 0, difficultyRating = 1 } = request.body;
 
     // In reality, we only have one
     const completeData = await client.puzzleCompleteData.updateMany({
       where: {
-       puzzleId,
-       userId: response.locals.userId,
+        puzzleId,
+        userId: response.locals.userId,
       },
       data: {
         timeTaken: time,
         liked,
         componentsUsed,
+        nandsUsed,
+        difficultyRating,
         completed: true,
       }
     });
@@ -208,7 +213,7 @@ class PuzzlesController {
         likes: puzzle.likes + liked ? 1 : 0,
         completions: puzzle.completions + 1,
         averageTime: newAverage,
-        difficulty: calculateDifficulty(newAverage),
+        difficulty: calculateDifficulty(newAverage, difficultyRating),
       },
     });
 
@@ -321,10 +326,9 @@ function calculateNewAverage(puzzle: Puzzle, time: number): number {
   return ((puzzle.averageTime ? puzzle.averageTime : 0) * puzzle.completions + time) / (puzzle.completions + 1);
 }
 
-// TODO add the rating by the player in the calculation
 // Needs to return a number between 0 and 1 no matter the inputs
-function calculateDifficulty(averageTime: number): number {
-  return (1 / (1 + (Math.pow(Math.E, -averageTime / 300))) - 0.5) * 2;
+function calculateDifficulty(averageTime: number, difficultyRating: Difficulty): number {
+  return (1 / (1 + (Math.pow(Math.E, - (averageTime * difficultyRating) / 300))) - 0.5) * 2;
 }
 
 export { PuzzlesController };
