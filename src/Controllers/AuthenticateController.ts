@@ -29,7 +29,7 @@ class AuthenticateController {
       password: undefined,
     };
 
-    return response.status(200).json(data);
+    return response.json(data);
   }
 }
 

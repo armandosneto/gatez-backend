@@ -4,6 +4,7 @@ CREATE TABLE "users" (
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
+    "confirmed" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -12,9 +13,11 @@ CREATE TABLE "puzzles" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "shortKey" TEXT NOT NULL,
     "likes" INTEGER NOT NULL DEFAULT 0,
+    "completions" INTEGER NOT NULL DEFAULT 0,
     "downloads" INTEGER NOT NULL DEFAULT 0,
-    "difficulty" DECIMAL,
-    "averageTime" INTEGER,
+    "difficulty" REAL,
+    "averageTime" REAL,
+    "averageDifficultyRating" REAL,
     "title" TEXT NOT NULL,
     "author" TEXT,
     "authorName" TEXT NOT NULL DEFAULT 'official',
@@ -25,7 +28,6 @@ CREATE TABLE "puzzles" (
     "maximumComponents" INTEGER,
     "minimumNands" INTEGER NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "completions" INTEGER NOT NULL DEFAULT 0,
     CONSTRAINT "puzzles_author_fkey" FOREIGN KEY ("author") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 

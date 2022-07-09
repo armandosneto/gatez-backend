@@ -13,6 +13,7 @@ model User {
   // TODO implement email confirmation support in the future
   email            String               @unique
   password         String
+  confirmed        Boolean              @default(false)
   createdAt        DateTime             @default(now())
   puzzles          Puzzle[]
   completedPuzzles PuzzleCompleteData[]
@@ -22,26 +23,27 @@ model User {
 }
 
 model Puzzle {
-  id                     Int                  @id @default(autoincrement())
-  shortKey               String
-  likes                  Int                  @default(0)
-  downloads              Int                  @default(0)
-  difficulty             Decimal?
-  averageTime            Int?
-  title                  String
-  user                   User?                @relation(fields: [author], references: [id], onDelete: Restrict)
-  author                 String?
-  authorName             String               @default("official")
-  data                   String
-  description            String
-  afterCompletingMessage String?
-  minimumComponents      Int
-  maximumComponents      Int? // TODO implement Component and NAND counting
-  minimumNands           Int
-  createdAt              DateTime             @default(now())
-  completions            Int                  @default(0)
-  completionsData        PuzzleCompleteData[]
-  puzzleReports          PuzzleReport[]
+  id                      Int                  @id @default(autoincrement())
+  shortKey                String
+  likes                   Int                  @default(0)
+  completions             Int                  @default(0)
+  downloads               Int                  @default(0)
+  difficulty              Float?
+  averageTime             Float?
+  averageDifficultyRating Float?
+  title                   String
+  user                    User?                @relation(fields: [author], references: [id], onDelete: Restrict)
+  author                  String?
+  authorName              String               @default("official")
+  data                    String
+  description             String
+  afterCompletingMessage  String?
+  minimumComponents       Int
+  maximumComponents       Int? // TODO implement Component and NAND counting
+  minimumNands            Int
+  createdAt               DateTime             @default(now())
+  completionsData         PuzzleCompleteData[]
+  puzzleReports           PuzzleReport[]
 
   @@map("puzzles")
 }
