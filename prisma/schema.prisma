@@ -10,8 +10,8 @@ datasource db {
 model User {
   id               String               @id @default(uuid())
   name             String               @unique
-  // TODO maybe add email support in the future
-  //  email            String               @unique
+  // TODO implement email confirmation support in the future
+  email            String               @unique
   password         String
   createdAt        DateTime             @default(now())
   puzzles          Puzzle[]
@@ -36,8 +36,8 @@ model Puzzle {
   description            String
   afterCompletingMessage String?
   minimumComponents      Int
-  maximumComponents      Int?
-  // minimumNands Int TODO implement counting
+  maximumComponents      Int? // TODO implement Component and NAND counting
+  minimumNands           Int
   createdAt              DateTime             @default(now())
   completions            Int                  @default(0)
   completionsData        PuzzleCompleteData[]
@@ -47,17 +47,18 @@ model Puzzle {
 }
 
 model PuzzleCompleteData {
-  id             String   @id @default(uuid())
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String
-  puzzle         Puzzle   @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
-  puzzleId       Int
-  timeTaken      Int?
-  componentsUsed Int?
-  // nandsUsed    Int TODO implement NAND counting
-  completed      Boolean  @default(false)
-  liked          Boolean  @default(false)
-  createdAt      DateTime @default(now())
+  id               String   @id @default(uuid())
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String
+  puzzle           Puzzle   @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+  puzzleId         Int
+  timeTaken        Int?
+  componentsUsed   Int? // TODO implement Component and NAND counting
+  nandsUsed        Int?
+  difficultyRating Int?
+  completed        Boolean  @default(false)
+  liked            Boolean  @default(false)
+  createdAt        DateTime @default(now())
 
   @@unique([userId, puzzleId])
   @@map("puzzle_complete_data")

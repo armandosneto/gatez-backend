@@ -3,15 +3,28 @@ import { hash } from "bcryptjs";
 import { client } from "../prisma/client";
 import { AppError } from "../Errors/AppError";
 import { User } from "@prisma/client";
+import { validationResult } from "express-validator";
 
 
 class UserController {
   async create(request: Request, response: Response) {
-    const { name, password } = request.body as User;
+    const errors = validationResult(request);
+    if (!errors.isEmpty()) {
+      return response.status(400).json({ errors: errors.array() });
+    }
+
+    const { name, email, password } = request.body as User;
 
     const userAlreadyExists = await client.user.findFirst({
       where: {
-        name,
+        OR: [
+          {
+            name,
+          },
+          {
+            email
+          },
+        ],
       },
     });
 
@@ -24,6 +37,7 @@ class UserController {
     const user = await client.user.create({
       data: {
         name,
+        email,
         password: passwordHash,
       } as User,
     });
