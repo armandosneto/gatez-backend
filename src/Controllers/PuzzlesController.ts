@@ -2,6 +2,7 @@ import { Puzzle, PuzzleCompleteData } from "@prisma/client";
 import { Request, Response } from "express";
 import { client } from "../prisma/client";
 import { AppError } from "../Errors/AppError";
+import difficultyRanges from "../utils/DificultyRanges";
 
 type category =
   | "official"
@@ -23,10 +24,11 @@ type PuzzleSubmit = Pick<
   "shortKey" | "title" | "data" | "description" | "minimumComponents"
 >;
 
-type PuzzleSearch = Pick<Puzzle, "difficulty"> & {
+type PuzzleSearch = {
   searchTerm: string;
-  duration: number;
+  duration: "short" | "medium" | "long" | "any";
   includeCompleted: boolean;
+  difficulty: "easy" | "medium" | "hard" | "any";
 };
 
 type Difficulty = 1 | 2 | 3;
@@ -42,7 +44,9 @@ class PuzzlesController {
             user: null,
           },
         });
-        return response.status(200).json(await onlyMetadata(officialPuzzles, response.locals.userId));
+        return response
+          .status(200)
+          .json(await onlyMetadata(officialPuzzles, response.locals.userId));
 
       case "completed":
         const completedPuzzles = await client.puzzle.findMany({
@@ -55,7 +59,9 @@ class PuzzlesController {
             },
           },
         });
-        return response.status(200).json(await onlyMetadata(completedPuzzles, response.locals.userId));
+        return response
+          .status(200)
+          .json(await onlyMetadata(completedPuzzles, response.locals.userId));
 
       case "mine":
         const myPuzzles = await client.puzzle.findMany({
@@ -63,7 +69,9 @@ class PuzzlesController {
             author: response.locals.userId,
           },
         });
-        return response.status(200).json(await onlyMetadata(myPuzzles, response.locals.userId));
+        return response
+          .status(200)
+          .json(await onlyMetadata(myPuzzles, response.locals.userId));
 
       case "new":
         const newPuzzles = await client.puzzle.findMany({
@@ -71,7 +79,9 @@ class PuzzlesController {
             createdAt: "desc",
           },
         });
-        return response.status(200).json(await onlyMetadata(newPuzzles, response.locals.userId));
+        return response
+          .status(200)
+          .json(await onlyMetadata(newPuzzles, response.locals.userId));
 
       case "top-rated":
         const topRatedPuzzles = await client.puzzle.findMany({
@@ -79,7 +89,25 @@ class PuzzlesController {
             likes: "desc",
           },
         });
-        return response.status(200).json(await onlyMetadata(topRatedPuzzles, response.locals.userId));
+        return response
+          .status(200)
+          .json(await onlyMetadata(topRatedPuzzles, response.locals.userId));
+
+      case "easy":
+      case "medium":
+      case "hard":
+        const range = difficultyRanges[category];
+        const puzzlesByDificulty = await client.puzzle.findMany({
+          where: {
+            difficulty: {
+              gte: range["min"],
+              lt: range["max"],
+            },
+          },
+        });
+        return response
+          .status(200)
+          .json(await onlyMetadata(puzzlesByDificulty, response.locals.userId));
 
       default:
         throw new Error("Invalid category!");
@@ -87,7 +115,8 @@ class PuzzlesController {
   }
 
   async search(request: Request, response: Response) {
-    const { searchTerm, duration, difficulty, includeCompleted } = request.body as PuzzleSearch;
+    const { searchTerm, duration, difficulty, includeCompleted } =
+      request.body as PuzzleSearch;
 
     const puzzles = await client.puzzle.findMany({
       where: {
@@ -114,7 +143,32 @@ class PuzzlesController {
 
     let metadata = await onlyMetadata(puzzles, response.locals.userId);
     if (!includeCompleted) {
-      metadata = metadata.filter(puzzle => puzzle.completed == false);
+      metadata = metadata.filter((puzzle) => puzzle.completed === false);
+    }
+
+    if (difficulty && difficulty !== "any") {
+      const range = difficultyRanges[difficulty];
+      metadata = metadata.filter(
+        (puzzle) =>
+          puzzle.difficulty &&
+          puzzle.difficulty >= range["min"] &&
+          puzzle.difficulty < range["max"]
+      );
+    }
+
+    if (duration && duration !== "any") {
+      metadata = metadata.filter((puzzle) => {
+        if (puzzle.averageTime) {
+          switch (duration) {
+            case "short":
+              return puzzle.averageTime < 120;
+            case "long":
+              return puzzle.averageTime > 600;
+            default:
+              return puzzle.averageTime >= 120 && puzzle.averageTime <= 600;
+          }
+        }
+      });
     }
 
     return response.status(200).json(metadata);
@@ -152,7 +206,7 @@ class PuzzlesController {
     const user = await client.user.findUnique({
       where: {
         id: response.locals.userId,
-      }
+      },
     });
 
     // Never should happen
@@ -185,7 +239,13 @@ class PuzzlesController {
       return response.status(404).send();
     }
 
-    const { time, liked, componentsUsed = 0, nandsUsed = 0, difficultyRating = 1 } = request.body;
+    const {
+      time,
+      liked,
+      componentsUsed = 0,
+      nandsUsed = 0,
+      difficultyRating = 1,
+    } = request.body;
 
     // In reality, we only have one
     const completeData = await client.puzzleCompleteData.updateMany({
@@ -200,14 +260,14 @@ class PuzzlesController {
         nandsUsed,
         difficultyRating,
         completed: true,
-      }
+      },
     });
 
     const newAverage = calculateNewAverage(puzzle, time);
 
     await client.puzzle.update({
       where: {
-        id: puzzleId
+        id: puzzleId,
       },
       data: {
         likes: puzzle.likes + liked ? 1 : 0,
@@ -240,11 +300,11 @@ class PuzzlesController {
         },
       });
 
-      puzzle.downloads++
+      puzzle.downloads++;
 
       await client.puzzle.update({
         where: {
-          id: puzzleId
+          id: puzzleId,
         },
         data: {
           downloads: puzzle.downloads,
@@ -254,9 +314,14 @@ class PuzzlesController {
 
     const { data, ...metaData } = puzzle;
 
-    return response
-      .status(200)
-      .json({ game: data, meta: metaData });
+    return response.status(200).json({
+      game: data,
+      meta: {
+        ...metaData,
+        liked: completeData?.liked,
+        dificultyRating: completeData?.difficultyRating,
+      },
+    });
   }
 
   async delete(request: Request, response: Response) {
@@ -284,51 +349,69 @@ class PuzzlesController {
   }
 }
 
-function findPuzzleCompleteData(puzzleId: number, userId: string): Promise<PuzzleCompleteData | null> {
+function findPuzzleCompleteData(
+  puzzleId: number,
+  userId: string
+): Promise<PuzzleCompleteData | null> {
   return client.puzzleCompleteData.findFirst({
     where: {
       puzzleId,
       userId,
-    }
+    },
   });
 }
 
 // TODO maybe get metadata by joins, or at least fetch all puzzles at once
-function onlyMetadata(puzzles: Puzzle[], userId: string): Promise<PuzzleMetadata[]> {
-  return Promise.all(puzzles.map(async (puzzle) => {
-    const completeData = await findPuzzleCompleteData(puzzle.id, userId);
+function onlyMetadata(
+  puzzles: Puzzle[],
+  userId: string
+): Promise<PuzzleMetadata[]> {
+  return Promise.all(
+    puzzles.map(async (puzzle) => {
+      const completeData = await findPuzzleCompleteData(puzzle.id, userId);
 
-    const { data, ...incompleteData } = puzzle;
-    const metaData = incompleteData as PuzzleMetadata;
+      const { data, ...incompleteData } = puzzle;
+      const metaData = incompleteData as PuzzleMetadata;
 
-    if (completeData) {
-      metaData.completed = completeData.completed;
-      metaData.liked = completeData.liked;
-    }
-    else {
-      metaData.completed = false;
-      metaData.liked = false;
-    }
+      if (completeData) {
+        metaData.completed = completeData.completed;
+        metaData.liked = completeData.liked;
+      } else {
+        metaData.completed = false;
+        metaData.liked = false;
+      }
 
-    return metaData;
-  }));
+      return metaData;
+    })
+  );
 }
 
 function findPuzzleById(puzzleId: number): Promise<Puzzle | null> {
   return client.puzzle.findFirst({
     where: {
       id: puzzleId,
-    }
+    },
   });
 }
 
 function calculateNewAverage(puzzle: Puzzle, time: number): number {
-  return ((puzzle.averageTime ? puzzle.averageTime : 0) * puzzle.completions + time) / (puzzle.completions + 1);
+  return (
+    ((puzzle.averageTime ? puzzle.averageTime : 0) * puzzle.completions +
+      time) /
+    (puzzle.completions + 1)
+  );
 }
 
 // Needs to return a number between 0 and 1 no matter the inputs
-function calculateDifficulty(averageTime: number, difficultyRating: Difficulty): number {
-  return (1 / (1 + (Math.pow(Math.E, - (averageTime * difficultyRating) / 300))) - 0.5) * 2;
+function calculateDifficulty(
+  averageTime: number,
+  difficultyRating: Difficulty
+): number {
+  return (
+    (1 / (1 + Math.pow(Math.E, -(averageTime * difficultyRating) / 300)) -
+      0.5) *
+    2
+  );
 }
 
 export { PuzzlesController };
