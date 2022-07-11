@@ -2,7 +2,8 @@ import { Puzzle, PuzzleCompleteData } from "@prisma/client";
 import { Request, Response } from "express";
 import { client } from "../prisma/client";
 import { AppError } from "../Errors/AppError";
-import difficultyRanges from "../utils/DificultyRanges";
+import difficultyRanges from "../utils/difficultyRanges";
+import difficultyLabels from "../utils/difficultyLabels";
 
 type category =
   | "official"
@@ -244,7 +245,7 @@ class PuzzlesController {
       liked,
       componentsUsed = 0,
       nandsUsed = 0,
-      difficultyRating = 1,
+      difficultyRating,
     } = request.body;
 
     // In reality, we only have one
@@ -314,12 +315,20 @@ class PuzzlesController {
 
     const { data, ...metaData } = puzzle;
 
+    let difficultyRating: string | undefined | null;
+
+    if (!completeData || completeData.difficultyRating === null) {
+      difficultyRating = undefined;
+    } else if (completeData && completeData.difficultyRating >= 0) {
+      difficultyRating = difficultyLabels[completeData?.difficultyRating];
+    }
+
     return response.status(200).json({
       game: data,
       meta: {
         ...metaData,
         liked: completeData?.liked,
-        dificultyRating: completeData?.difficultyRating,
+        difficultyRating,
       },
     });
   }
