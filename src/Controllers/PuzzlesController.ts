@@ -254,7 +254,10 @@ class PuzzlesController {
     });
 
     const newAverageTime = calculateNewAverage(puzzle.averageTime, puzzle.completions, time);
-    const newAverageDifficulty = calculateNewAverage(puzzle.averageDifficultyRating, puzzle.completions, difficultyRating);
+    let newAverageDifficulty = puzzle.averageDifficultyRating ? puzzle.averageDifficultyRating : 0;
+    if (difficultyRating) {
+      newAverageDifficulty = calculateNewAverage(puzzle.averageDifficultyRating, puzzle.completions, difficultyRating);
+    }
 
     await client.puzzle.update({
       where: {
@@ -265,7 +268,7 @@ class PuzzlesController {
         completions: puzzle.completions + 1,
         averageTime: newAverageTime,
         averageDifficultyRating: newAverageDifficulty,
-        difficulty: calculateDifficulty(newAverageTime, difficultyRating),
+        difficulty: calculateDifficulty(newAverageTime, newAverageDifficulty),
       },
     });
 
