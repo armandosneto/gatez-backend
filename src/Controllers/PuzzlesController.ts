@@ -122,8 +122,6 @@ class PuzzlesController {
             },
           },
         ],
-        // TODO implement difficulty search
-        // difficulty: difficulty as string,
       },
     });
 
@@ -136,6 +134,7 @@ class PuzzlesController {
       metadata = metadata.filter((puzzle) => puzzle.completed === false);
     }
 
+    // TODO filter in the query
     if (difficulty && difficulty !== "any") {
       const range = difficultyRanges[difficulty];
       metadata = metadata.filter(
@@ -229,6 +228,8 @@ class PuzzlesController {
       return response.status(404).send();
     }
 
+    const userId = response.locals.userId;
+
     const {
       time,
       liked,
@@ -237,11 +238,13 @@ class PuzzlesController {
       difficultyRating,
     } = request.body;
 
+    const previousCompleteData = (await findPuzzleCompleteData(puzzleId, userId))!;
+
     // In reality, we only have one
     const completeData = await client.puzzleCompleteData.updateMany({
       where: {
         puzzleId,
-        userId: response.locals.userId,
+        userId,
       },
       data: {
         timeTaken: time,
@@ -253,22 +256,41 @@ class PuzzlesController {
       },
     });
 
-    const newAverageTime = calculateNewAverage(puzzle.averageTime, puzzle.completions, time);
-    let newAverageDifficulty = puzzle.averageDifficultyRating ? puzzle.averageDifficultyRating : 0;
-    if (difficultyRating) {
-      newAverageDifficulty = calculateNewAverage(puzzle.averageDifficultyRating, puzzle.completions, difficultyRating);
-    }
+    let likes = puzzle.likes;
+    let completions = puzzle.completions;
+    let averageTime = puzzle.averageTime;
+    let averageDifficultyRating = puzzle.averageDifficultyRating;
 
+    if (!previousCompleteData.completed) {
+      averageTime = calculateNewAverage(puzzle.averageTime, puzzle.completions, time);
+      averageDifficultyRating = calculateNewAverage(puzzle.averageDifficultyRating, puzzle.completions, difficultyRating);
+
+      likes += liked ? 1 : 0;
+      completions++;
+    }
+    else {
+      if (previousCompleteData.difficultyRating != null && difficultyRating != null && previousCompleteData.difficultyRating != difficultyRating) {
+        averageDifficultyRating = recalculateAverage(averageDifficultyRating!, puzzle.completions, previousCompleteData.difficultyRating, difficultyRating);
+      }
+      
+      if (previousCompleteData.liked && !liked) {
+        likes--;
+      }
+      else if (!previousCompleteData.liked && liked) {
+        likes++;
+      }
+    }
+  
     await client.puzzle.update({
       where: {
         id: puzzleId,
       },
       data: {
-        likes: puzzle.likes + liked ? 1 : 0,
-        completions: puzzle.completions + 1,
-        averageTime: newAverageTime,
-        averageDifficultyRating: newAverageDifficulty,
-        difficulty: calculateDifficulty(newAverageTime, newAverageDifficulty),
+        likes,
+        completions,
+        averageTime,
+        averageDifficultyRating,
+        difficulty: calculateDifficulty(averageTime!, averageDifficultyRating),
       },
     });
 
@@ -309,12 +331,10 @@ class PuzzlesController {
 
     const { data, ...metaData } = puzzle;
 
-    let difficultyRating: string | undefined | null;
+    let difficultyRating: string | null = null;
 
-    if (!completeData || completeData.difficultyRating === null) {
-      difficultyRating = undefined;
-    } else if (completeData && completeData.difficultyRating >= 0) {
-      difficultyRating = difficultyLabels[completeData?.difficultyRating];
+    if (completeData != null && completeData.difficultyRating != null) {
+      difficultyRating = difficultyLabels[completeData.difficultyRating];
     }
 
     return response.json({
@@ -391,12 +411,25 @@ function findPuzzleById(puzzleId: number): Promise<Puzzle | null> {
   });
 }
 
-function calculateNewAverage(oldAverage: number | null, oldTotal: number, newValue: number): number {
-  return ((oldAverage ? oldAverage : 0) * oldTotal + newValue) / (oldTotal + 1);
+function calculateNewAverage(oldAverage: number | null, oldTotal: number, newValue: number | null): number | null {
+  if (oldAverage == null) {
+    return newValue;
+  }
+  if (newValue == null) {
+    return oldAverage;
+  }
+  return (oldAverage * oldTotal + newValue) / (oldTotal + 1);
+}
+
+function recalculateAverage(oldAverage: number, total: number, oldValue: number, newValue: number): number {
+  return oldAverage - oldAverage / total + newValue / total;
 }
 
 // Needs to return a number between 0 and 1 no matter the inputs
-function calculateDifficulty(averageTime: number, averageDifficulty: number): number {
+function calculateDifficulty(averageTime: number, averageDifficulty: number | null): number {
+  if (averageDifficulty == null) {
+    averageDifficulty = 0;
+  }
   return (1 / (1 + (Math.pow(Math.E, - (averageTime) / 300))) - 0.5) + averageDifficulty / 4;
 }
 
