@@ -199,7 +199,7 @@ class PuzzlesController {
     });
 
     // Never should happen
-    if (user == null) {
+    if (user === null) {
       throw new AppError("Authentication inconsistency!", 401);
     }
 
@@ -331,7 +331,7 @@ class PuzzlesController {
 
     let difficultyRating: string | null = null;
 
-    if (completeData != null && completeData.difficultyRating != null) {
+    if (completeData !== null && completeData.difficultyRating !== null) {
       difficultyRating = difficultyLabels[completeData.difficultyRating];
     }
 
@@ -410,23 +410,23 @@ function findPuzzleById(puzzleId: number): Promise<Puzzle | null> {
 }
 
 function calculateNewAverage(oldAverage: number | null, oldTotal: number, newValue: number | null): number | null {
-  if (oldAverage == null) {
+  if (oldAverage === null) {
     return newValue;
   }
-  if (newValue == null) {
+  if (newValue === null) {
     return oldAverage;
   }
   return (oldAverage * oldTotal + newValue) / (oldTotal + 1);
 }
 
 function recalculateAverage(oldAverage: number | null, total: number, oldValue: number | null, newValue: number | null): number | null {
-  if (oldAverage == null) {
+  if (oldAverage === null) {
     return newValue;
   }
-  if (newValue == null) {
+  if (newValue === null || oldValue == newValue) {
     return oldAverage;
   }
-  if (oldValue == null) {
+  if (oldValue === null) {
     oldValue = oldAverage;
   }
   return oldAverage - oldValue / total + newValue / total;
@@ -434,7 +434,7 @@ function recalculateAverage(oldAverage: number | null, total: number, oldValue: 
 
 // Needs to return a number between 0 and 1 no matter the inputs
 function calculateDifficulty(averageTime: number, averageDifficulty: number | null): number {
-  if (averageDifficulty == null) {
+  if (averageDifficulty === null) {
     averageDifficulty = 0;
   }
   return (1 / (1 + (Math.pow(Math.E, - (averageTime) / 300))) - 0.5) + averageDifficulty / 4;
