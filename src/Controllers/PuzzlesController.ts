@@ -269,9 +269,7 @@ class PuzzlesController {
       completions++;
     }
     else {
-      if (previousCompleteData.difficultyRating != null && difficultyRating != null && previousCompleteData.difficultyRating != difficultyRating) {
-        averageDifficultyRating = recalculateAverage(averageDifficultyRating!, puzzle.completions, previousCompleteData.difficultyRating, difficultyRating);
-      }
+      averageDifficultyRating = recalculateAverage(averageDifficultyRating!, puzzle.completions, previousCompleteData.difficultyRating, difficultyRating);
       
       if (previousCompleteData.liked && !liked) {
         likes--;
@@ -421,8 +419,17 @@ function calculateNewAverage(oldAverage: number | null, oldTotal: number, newVal
   return (oldAverage * oldTotal + newValue) / (oldTotal + 1);
 }
 
-function recalculateAverage(oldAverage: number, total: number, oldValue: number, newValue: number): number {
-  return oldAverage - oldAverage / total + newValue / total;
+function recalculateAverage(oldAverage: number | null, total: number, oldValue: number | null, newValue: number | null): number | null {
+  if (oldAverage == null) {
+    return newValue;
+  }
+  if (newValue == null) {
+    return oldAverage;
+  }
+  if (oldValue == null) {
+    oldValue = oldAverage;
+  }
+  return oldAverage - oldValue / total + newValue / total;
 }
 
 // Needs to return a number between 0 and 1 no matter the inputs
