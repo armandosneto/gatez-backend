@@ -22,7 +22,7 @@ type PuzzleMetadata = Omit<Puzzle, "data"> & {
 
 type PuzzleSubmit = Pick<
   Puzzle,
-  "shortKey" | "title" | "data" | "description" | "minimumComponents"
+  "shortKey" | "title" | "data" | "description" | "minimumComponents" | "minimumNands"
 >;
 
 type PuzzleSearch = {
@@ -189,7 +189,7 @@ class PuzzlesController {
   }
 
   async submit(request: Request, response: Response) {
-    const { shortKey, title, data, description, minimumComponents } =
+    const { shortKey, title, data, description, minimumComponents, minimumNands } =
       request.body as PuzzleSubmit;
 
     const user = await client.user.findUnique({
@@ -210,9 +210,9 @@ class PuzzlesController {
         data,
         author: user.id,
         authorName: user.name,
-        description: "placeholder",
-        minimumComponents: 1,
-        minimumNands: 1,
+        description: description,
+        minimumComponents: minimumComponents || 1,
+        minimumNands: minimumNands || 1,
       },
     });
 
