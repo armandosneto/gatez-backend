@@ -13,7 +13,9 @@ class UserController {
       return response.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password } = request.body as User;
+    let { name, email, password } = request.body as User;
+    // TODO implement email use and validation
+    email = name;
 
     const userAlreadyExists = await client.user.findFirst({
       where: {
@@ -42,10 +44,12 @@ class UserController {
       } as User,
     });
 
-    // return user without password
+    // return user without password and email (for now)
     const userWithoutPassword = {
       ...user,
       password: undefined,
+      email: undefined,
+      confirmed: undefined,
     };
     return response.status(201).json(userWithoutPassword);
   }
