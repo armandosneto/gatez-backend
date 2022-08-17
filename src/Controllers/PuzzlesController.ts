@@ -4,6 +4,7 @@ import { client } from "../prisma/client";
 import { AppError } from "../Errors/AppError";
 import difficultyRanges from "../utils/difficultyRanges";
 import difficultyLabels from "../utils/difficultyLabels";
+import { getTrophies } from "../utils/getTrophies";
 
 type category =
   | "official"
@@ -22,7 +23,12 @@ type PuzzleMetadata = Omit<Puzzle, "data"> & {
 
 type PuzzleSubmit = Pick<
   Puzzle,
-  "shortKey" | "title" | "data" | "description" | "minimumComponents" | "minimumNands"
+  | "shortKey"
+  | "title"
+  | "data"
+  | "description"
+  | "minimumComponents"
+  | "minimumNands"
 >;
 
 type PuzzleSearch = {
@@ -97,7 +103,9 @@ class PuzzlesController {
             },
           },
         });
-        return response.json(await onlyMetadata(puzzlesByDificulty, response.locals.userId));
+        return response.json(
+          await onlyMetadata(puzzlesByDificulty, response.locals.userId)
+        );
 
       default:
         throw new Error("Invalid category!");
@@ -189,8 +197,14 @@ class PuzzlesController {
   }
 
   async submit(request: Request, response: Response) {
-    const { shortKey, title, data, description, minimumComponents, minimumNands } =
-      request.body as PuzzleSubmit;
+    const {
+      shortKey,
+      title,
+      data,
+      description,
+      minimumComponents,
+      minimumNands,
+    } = request.body as PuzzleSubmit;
 
     const user = await client.user.findUnique({
       where: {
@@ -238,7 +252,10 @@ class PuzzlesController {
       difficultyRating,
     } = request.body;
 
-    const previousCompleteData = (await findPuzzleCompleteData(puzzleId, userId))!;
+    const previousCompleteData = (await findPuzzleCompleteData(
+      puzzleId,
+      userId
+    ))!;
 
     // In reality, we only have one
     const completeData = await client.puzzleCompleteData.updateMany({
@@ -262,23 +279,39 @@ class PuzzlesController {
     let averageDifficultyRating = puzzle.averageDifficultyRating;
 
     if (!previousCompleteData.completed) {
-      averageTime = calculateNewAverage(puzzle.averageTime, puzzle.completions, time);
-      averageDifficultyRating = calculateNewAverage(puzzle.averageDifficultyRating, puzzle.completions, difficultyRating);
+      averageTime = calculateNewAverage(
+        puzzle.averageTime,
+        puzzle.completions,
+        time
+      );
+      averageDifficultyRating = calculateNewAverage(
+        puzzle.averageDifficultyRating,
+        puzzle.completions,
+        difficultyRating
+      );
 
       likes += liked ? 1 : 0;
       completions++;
-    }
-    else {
-      averageDifficultyRating = recalculateAverage(averageDifficultyRating!, puzzle.completions, previousCompleteData.difficultyRating, difficultyRating);
-      
+    } else {
+      averageDifficultyRating = recalculateAverage(
+        averageDifficultyRating!,
+        puzzle.completions,
+        previousCompleteData.difficultyRating,
+        difficultyRating
+      );
+
       if (previousCompleteData.liked && !liked) {
         likes--;
-      }
-      else if (!previousCompleteData.liked && liked) {
+      } else if (!previousCompleteData.liked && liked) {
         likes++;
       }
     }
-  
+
+    const newDifficulty = calculateDifficulty(
+      averageTime!,
+      averageDifficultyRating
+    );
+
     await client.puzzle.update({
       where: {
         id: puzzleId,
@@ -288,11 +321,39 @@ class PuzzlesController {
         completions,
         averageTime,
         averageDifficultyRating,
-        difficulty: calculateDifficulty(averageTime!, averageDifficultyRating),
+        difficulty: newDifficulty,
       },
     });
 
-    return response.json(completeData);
+    let newTrophiesValue = undefined;
+
+    if (!previousCompleteData.completed) {
+      const user = await client.user.findUnique({
+        where: {
+          id: userId,
+        },
+      });
+
+      if (!user) {
+        throw new AppError("Authentication inconsistency!", 401);
+      }
+
+      newTrophiesValue = user.trophies + getTrophies(newDifficulty);
+
+      await client.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          trophies: user.trophies + getTrophies(newDifficulty),
+        },
+      });
+    }
+
+    return response.json({
+      completeData: completeData,
+      trophies: newTrophiesValue,
+    });
   }
 
   async download(request: Request, response: Response) {
@@ -370,7 +431,10 @@ class PuzzlesController {
   }
 }
 
-function findPuzzleCompleteData(puzzleId: number, userId: string): Promise<PuzzleCompleteData | null> {
+function findPuzzleCompleteData(
+  puzzleId: number,
+  userId: string
+): Promise<PuzzleCompleteData | null> {
   return client.puzzleCompleteData.findFirst({
     where: {
       puzzleId,
@@ -380,7 +444,10 @@ function findPuzzleCompleteData(puzzleId: number, userId: string): Promise<Puzzl
 }
 
 // TODO maybe get metadata by joins, or at least fetch all puzzles at once
-function onlyMetadata(puzzles: Puzzle[], userId: string): Promise<PuzzleMetadata[]> {
+function onlyMetadata(
+  puzzles: Puzzle[],
+  userId: string
+): Promise<PuzzleMetadata[]> {
   return Promise.all(
     puzzles.map(async (puzzle) => {
       const completeData = await findPuzzleCompleteData(puzzle.id, userId);
@@ -409,7 +476,11 @@ function findPuzzleById(puzzleId: number): Promise<Puzzle | null> {
   });
 }
 
-function calculateNewAverage(oldAverage: number | null, oldTotal: number, newValue: number | null): number | null {
+function calculateNewAverage(
+  oldAverage: number | null,
+  oldTotal: number,
+  newValue: number | null
+): number | null {
   if (oldAverage === null) {
     return newValue;
   }
@@ -419,7 +490,12 @@ function calculateNewAverage(oldAverage: number | null, oldTotal: number, newVal
   return (oldAverage * oldTotal + newValue) / (oldTotal + 1);
 }
 
-function recalculateAverage(oldAverage: number | null, total: number, oldValue: number | null, newValue: number | null): number | null {
+function recalculateAverage(
+  oldAverage: number | null,
+  total: number,
+  oldValue: number | null,
+  newValue: number | null
+): number | null {
   if (oldAverage === null) {
     return newValue;
   }
@@ -433,11 +509,16 @@ function recalculateAverage(oldAverage: number | null, total: number, oldValue: 
 }
 
 // Needs to return a number between 0 and 1 no matter the inputs
-function calculateDifficulty(averageTime: number, averageDifficulty: number | null): number {
+function calculateDifficulty(
+  averageTime: number,
+  averageDifficulty: number | null
+): number {
   if (averageDifficulty === null) {
     averageDifficulty = 0;
   }
-  return (1 / (1 + (Math.pow(Math.E, - (averageTime) / 300))) - 0.5) + averageDifficulty / 4;
+  return (
+    1 / (1 + Math.pow(Math.E, -averageTime / 300)) - 0.5 + averageDifficulty / 4
+  );
 }
 
 export { PuzzlesController };
