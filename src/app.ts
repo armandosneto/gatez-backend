@@ -1,5 +1,6 @@
 import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
+import helmet from "helmet";
 import "express-async-errors";
 import { router } from "./Routes/routes";
 import { AppError } from "./Errors/AppError";
@@ -7,6 +8,7 @@ import { AppError } from "./Errors/AppError";
 const app = express();
 
 app.use(express.json());
+app.use(helmet());
 app.use(cors());
 app.use(router);
 
