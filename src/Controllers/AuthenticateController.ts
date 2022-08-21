@@ -43,6 +43,10 @@ class AuthenticateController {
 
     return response.json(data);
   }
+
+  async respondLoggedIn(request: Request, response: Response) {
+    return response.json("ok token");
+  }
 }
 
 export { AuthenticateController };

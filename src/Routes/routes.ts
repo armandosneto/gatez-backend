@@ -1,4 +1,4 @@
-import { Router, Request, Response } from "express";
+import { Router } from "express";
 import { ensureAuthenticated } from "../middlewares/ensureAuthenticated";
 import index from "./";
 import login from "./login";
