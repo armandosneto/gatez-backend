@@ -247,7 +247,7 @@ class PuzzlesController {
     const {
       time,
       liked,
-      componentsUsed = 0,
+      componentsUsed,
       nandsUsed = 0,
       difficultyRating,
     } = request.body;

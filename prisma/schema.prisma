@@ -40,7 +40,7 @@ model Puzzle {
   description             String
   afterCompletingMessage  String?
   minimumComponents       Int
-  maximumComponents       Int? // TODO implement Component and NAND counting
+  maximumComponents       Int? // TODO implement NAND counting
   minimumNands            Int
   createdAt               DateTime             @default(now())
   completionsData         PuzzleCompleteData[]
@@ -56,7 +56,7 @@ model PuzzleCompleteData {
   puzzle           Puzzle   @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
   puzzleId         Int
   timeTaken        Int?
-  componentsUsed   Int? // TODO implement Component and NAND counting
+  componentsUsed   Int? // TODO implement NAND counting
   nandsUsed        Int?
   difficultyRating Int?
   completed        Boolean  @default(false)
