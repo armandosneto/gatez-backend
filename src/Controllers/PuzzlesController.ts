@@ -29,6 +29,7 @@ type PuzzleSubmit = Pick<
   | "description"
   | "minimumComponents"
   | "minimumNands"
+  | "maximumComponents"
 >;
 
 type PuzzleSearch = {
@@ -204,6 +205,7 @@ class PuzzlesController {
       description,
       minimumComponents,
       minimumNands,
+      maximumComponents,
     } = request.body as PuzzleSubmit;
 
     const user = await client.user.findUnique({
@@ -226,6 +228,7 @@ class PuzzlesController {
         authorName: user.name,
         description: description,
         minimumComponents: minimumComponents || 1,
+        maximumComponents,
         minimumNands: minimumNands || 1,
       },
     });
