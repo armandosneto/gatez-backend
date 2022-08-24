@@ -38,7 +38,7 @@ type PuzzleSearch = {
   difficulty: "easy" | "medium" | "hard" | "any";
 };
 
-type Difficulty = 1 | 2 | 3;
+type Difficulty = 0 | 1 | 2;
 
 class PuzzlesController {
   async list(request: Request, response: Response) {
@@ -513,8 +513,8 @@ function calculateDifficulty(
   averageTime: number,
   averageDifficulty: number | null
 ): number {
-  if (averageDifficulty === null) {
-    averageDifficulty = 0;
+  if (!averageDifficulty) {
+    averageDifficulty = Number.MIN_VALUE;
   }
   return (
     1 / (1 + Math.pow(Math.E, -averageTime / 300)) - 0.5 + averageDifficulty / 4
