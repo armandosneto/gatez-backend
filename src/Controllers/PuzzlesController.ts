@@ -1,7 +1,6 @@
 import { Puzzle, PuzzleCompleteData } from "@prisma/client";
 import { Request, Response } from "express";
 import { client } from "../prisma/client";
-import { AppError } from "../Errors/AppError";
 import difficultyRanges from "../utils/difficultyRanges";
 import difficultyLabels from "../utils/difficultyLabels";
 import { getTrophies } from "../utils/getTrophies";
@@ -44,7 +43,7 @@ type Difficulty = 0 | 1 | 2;
 class PuzzlesController {
   async list(request: Request, response: Response) {
     const category = request.params.category as category;
-    const userId = response.locals.userId;
+    const userId = response.locals.user.id;
 
     switch (category) {
       case "official":
@@ -138,7 +137,7 @@ class PuzzlesController {
       return response.status(404).send();
     }
 
-    let metadata = await onlyMetadata(puzzles, response.locals.userId);
+    let metadata = await onlyMetadata(puzzles, response.locals.user.id);
     if (!includeCompleted) {
       metadata = metadata.filter((puzzle) => puzzle.completed === false);
     }
@@ -185,7 +184,7 @@ class PuzzlesController {
     const report = await client.puzzleReport.create({
       data: {
         puzzleId: +puzzleId,
-        userId: response.locals.userId,
+        userId: response.locals.user.id,
         reason: request.body.reason,
       },
     });
@@ -208,16 +207,7 @@ class PuzzlesController {
       maximumComponents,
     } = request.body as PuzzleSubmit;
 
-    const user = await client.user.findUnique({
-      where: {
-        id: response.locals.userId,
-      },
-    });
-
-    // Never should happen
-    if (user === null) {
-      throw new AppError("Authentication inconsistency!", 401);
-    }
+    const user = response.locals.user;
 
     const puzzle = await client.puzzle.create({
       data: {
@@ -245,7 +235,7 @@ class PuzzlesController {
       return response.status(404).send();
     }
 
-    const userId = response.locals.userId;
+    const userId = response.locals.user.id;
 
     const {
       time,
@@ -331,15 +321,7 @@ class PuzzlesController {
     let newTrophiesValue = undefined;
 
     if (!previousCompleteData.completed) {
-      const user = await client.user.findUnique({
-        where: {
-          id: userId,
-        },
-      });
-
-      if (!user) {
-        throw new AppError("Authentication inconsistency!", 401);
-      }
+      const user = response.locals.user;
 
       newTrophiesValue = user.trophies + getTrophies(newDifficulty);
 
@@ -368,7 +350,7 @@ class PuzzlesController {
       return response.status(404).send();
     }
 
-    const userId = response.locals.userId;
+    const userId = response.locals.user.id;
     const completeData = await findPuzzleCompleteData(puzzleId, userId);
 
     if (!completeData) {
@@ -411,12 +393,12 @@ class PuzzlesController {
 
   async delete(request: Request, response: Response) {
     const puzzleId = +request.params.puzzleId;
-    const user = response.locals.userId;
+    const userId = response.locals.user.id;
 
     const puzzle = await client.puzzle.findFirst({
       where: {
         id: puzzleId,
-        author: user,
+        author: userId,
       },
     });
 
@@ -455,7 +437,7 @@ function onlyMetadata(
     puzzles.map(async (puzzle) => {
       const completeData = await findPuzzleCompleteData(puzzle.id, userId);
 
-      const { data, ...incompleteData } = puzzle;
+      const { data, description, ...incompleteData } = puzzle;
       const metaData = incompleteData as PuzzleMetadata;
 
       if (completeData) {

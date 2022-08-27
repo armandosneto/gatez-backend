@@ -4,6 +4,7 @@ import { client } from "../prisma/client";
 import { AppError } from "../Errors/AppError";
 import { User } from "@prisma/client";
 import { validationResult } from "express-validator";
+import { removeSensitiveData } from "../utils/user";
 
 
 class UserController {
@@ -44,14 +45,7 @@ class UserController {
       } as User,
     });
 
-    // return user without password and email (for now)
-    const userWithoutPassword = {
-      ...user,
-      password: undefined,
-      email: undefined,
-      confirmed: undefined,
-    };
-    return response.status(201).json(userWithoutPassword);
+    return response.status(201).json(removeSensitiveData(user));
   }
 }
 

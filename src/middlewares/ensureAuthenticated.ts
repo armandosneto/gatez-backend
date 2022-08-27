@@ -28,7 +28,7 @@ export async function ensureAuthenticated(
       throw new Error();
     }
 
-    response.locals.userId = sub;
+    response.locals.user = user;
 
     return next();
   } catch (err) {

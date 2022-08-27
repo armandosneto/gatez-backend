@@ -12,6 +12,8 @@ router.post("/",
     body("password").exists(),
     authenticateController.login);
 
-router.get("/", ensureAuthenticated, authenticateController.respondLoggedIn);
+router.get("/",
+    ensureAuthenticated,
+    authenticateController.respondLoggedIn);
 
 export default router;

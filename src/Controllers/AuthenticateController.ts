@@ -4,6 +4,7 @@ import { client } from "../prisma/client";
 import { compare } from "bcryptjs";
 import { sign } from "jsonwebtoken";
 import { validationResult } from "express-validator";
+import { removeSensitiveData } from "../utils/user";
 
 const defaultAuthErrorMessage = "name or password is wrong!";
 
@@ -34,18 +35,15 @@ class AuthenticateController {
     });
 
     const data = {
-      ...user,
+      ...removeSensitiveData(user),
       token,
-      password: undefined,
-      email: undefined,
-      confirmed: undefined,
     };
 
     return response.json(data);
   }
 
   async respondLoggedIn(request: Request, response: Response) {
-    return response.json("ok token");
+    return response.json(removeSensitiveData(response.locals.user));
   }
 }
 
