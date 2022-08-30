@@ -7,9 +7,9 @@ const router = Router();
 const userController = new UserController();
 
 router.post("/",
-    body("name").exists(),
+    body("name").isLength({ min: 4, max: 20 }),
 //  body("email").isEmail(),
-    body("password").isLength({ min: 6 }),
+    body("password").isLength({ min: 6, max: 24 }),
     userController.create);
 
 export default router;
