@@ -18,6 +18,15 @@ Run the server in dev mode by running `yarn dev` in the root of the project. By 
 
 There is no production mode for now.
 
+## Future features/improvements in probable order of implementation:
+
+-   Refactor the code in PuzzlesController.ts;
+-   Improving security and performance;
+-   Implement pagination on puzzle requests;
+-   Implement basic moderation features, where admin users can view and review reports, deleting infringing puzzles and punishing users, and some automatic moderation (temporarily hiding highly reported puzzles until moderation);
+-   Implement multi lingual puzzle titles and descriptions, that can be translated by users or automatically;
+-   Deploy the application;
+
 ## License
 
 This software is licensed under the MIT open source license. Feel free to use and contribute to the project!
