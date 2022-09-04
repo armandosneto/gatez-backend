@@ -1,9 +1,7 @@
 import { Puzzle, PuzzleCompleteData } from "@prisma/client";
 import { Request, Response } from "express";
 import { client } from "../prisma/client";
-import difficultyRanges from "../utils/difficultyRanges";
-import difficultyLabels from "../utils/difficultyLabels";
-import { getTrophies } from "../utils/getTrophies";
+import { difficultyLabels, difficultyRanges, getTrophies } from "../utils/difficultyUtil";
 
 type category =
   | "official"
