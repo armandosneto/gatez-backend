@@ -14,7 +14,7 @@ Your need `node` (at least version v16.15.1) and `yarn` (version v1.22.19) insta
 
 ## How to run
 
-Run the server in dev mode by running `yarn dev` in the root of the project. By default the server will listen on port 15001 and all changes will trigger a restart.
+Run the server in dev mode by running `yarn dev` in the root of the project. By default the server will listen on port 15001 and all changes will trigger a restart. By default, a default database containing the default levels will be copied to the correct database directory. If you do not wish to use it, create a fresh database by running `yarn prisma migrate dev`. These default levers are only available in Brazilian portuguese for now, but we'll work on adding multi language support for every level.
 
 There is no production mode for now.
 
