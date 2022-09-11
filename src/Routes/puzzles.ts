@@ -7,6 +7,7 @@ const puzzlesController = new PuzzlesController();
 
 router.get("/list/:category", puzzlesController.list);
 router.get("/download/:puzzleId", puzzlesController.download);
+router.get("/officialSnapshot", puzzlesController.officialSnapshot);
 
 router.post("/submit", puzzlesController.submit);
 router.post("/complete/:puzzleId", puzzlesController.complete);

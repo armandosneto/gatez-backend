@@ -1,5 +1,5 @@
 import { Puzzle, PuzzleCompleteData } from "@prisma/client";
-import { Request, Response } from "express";
+import { Request, response, Response } from "express";
 import { client } from "../prisma/client";
 import { difficultyLabels, difficultyRanges, getTrophies } from "../utils/difficultyUtil";
 
@@ -371,22 +371,7 @@ class PuzzlesController {
       });
     }
 
-    const { data, ...metaData } = puzzle;
-
-    let difficultyRating: string | null = null;
-
-    if (completeData !== null && completeData.difficultyRating !== null) {
-      difficultyRating = difficultyLabels[completeData.difficultyRating];
-    }
-
-    return response.json({
-      game: data,
-      meta: {
-        ...metaData,
-        liked: completeData?.liked,
-        difficultyRating,
-      },
-    });
+    return response.json(buildPlayPuzzleObject(puzzle, completeData));
   }
 
   async delete(request: Request, response: Response) {
@@ -412,6 +397,21 @@ class PuzzlesController {
 
     return response.json({ success: true });
   }
+
+  async officialSnapshot(request: Request, response: Response) {
+    const officialPuzzles = await client.puzzle.findMany({
+      where: {
+        user: null,
+      },
+    });
+
+    const snapshot = officialPuzzles.reduce((acc: any, puzzle: Puzzle) => {
+      acc[puzzle.id] = buildPlayPuzzleObject(puzzle, null);
+      return acc;
+    }, {});
+
+    return response.json(snapshot);
+  }
 }
 
 function findPuzzleCompleteData(
@@ -424,6 +424,24 @@ function findPuzzleCompleteData(
       userId,
     },
   });
+}
+
+function buildPlayPuzzleObject(puzzle: Puzzle, completeData: PuzzleCompleteData | null) {
+  const { data, ...metaData } = puzzle;
+  let difficultyRating: string | null = null;
+
+  if (completeData !== null && completeData.difficultyRating !== null) {
+    difficultyRating = difficultyLabels[completeData.difficultyRating];
+  }
+
+  return {
+    game: data,
+    meta: {
+      ...metaData,
+      liked: completeData?.liked,
+      difficultyRating,
+    },
+  }
 }
 
 // TODO maybe get metadata by joins, or at least fetch all puzzles at once
