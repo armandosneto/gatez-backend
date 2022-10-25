@@ -4,7 +4,7 @@ import { client } from "../prisma/client";
 import { compare } from "bcryptjs";
 import { sign } from "jsonwebtoken";
 import { validationResult } from "express-validator";
-import { removeSensitiveData } from "../utils/user";
+import { removeSensitiveData } from "../utils/userUtil";
 
 const defaultAuthErrorMessage = "name or password is wrong!";
 

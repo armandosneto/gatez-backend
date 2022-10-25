@@ -4,7 +4,7 @@ import { client } from "../prisma/client";
 import { AppError } from "../Errors/AppError";
 import { User } from "@prisma/client";
 import { validationResult } from "express-validator";
-import { removeSensitiveData } from "../utils/user";
+import { removeSensitiveData } from "../utils/userUtil";
 
 
 class UserController {
