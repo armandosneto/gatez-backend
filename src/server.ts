@@ -1,9 +1,9 @@
-import { app } from "./app";
-import { copyFileSync, mkdirSync, existsSync } from "fs";
 import * as dotenv from "dotenv";
 
 dotenv.config();
-process.env.NODE_ENV = process.env.NODE_ENV || "dev";
+
+import { app } from "./app";
+import { copyFileSync, mkdirSync, existsSync } from "fs";
 
 const port = 15001;
 const databaseHome = "./src/database";

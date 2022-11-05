@@ -251,7 +251,7 @@ class PuzzlesController {
     } = request.body;
 
     if (difficultyRating !in difficulties) {
-      return response.status(400).send();
+      return response.status(400).send("Invalid difficulty rating!");
     }
 
     const previousCompleteData = (await findPuzzleCompleteData(
@@ -382,7 +382,7 @@ class PuzzlesController {
       });
     }
 
-    return response.json(buildPlayPuzzleObject(puzzle, completeData));
+    return response.json(await buildPlayPuzzleObject(puzzle, completeData));
   }
 
   async delete(request: Request, response: Response) {
@@ -416,8 +416,14 @@ class PuzzlesController {
       },
     });
 
-    const snapshot = officialPuzzles.reduce((acc: any, puzzle: Puzzle) => {
-      acc[puzzle.id] = buildPlayPuzzleObject(puzzle, null);
+    const officialPuzzlesComplete = await Promise.all(
+      officialPuzzles.map(async (puzzle) => {
+        return await buildPlayPuzzleObject(puzzle, null);
+      })
+    );
+    
+    const snapshot = officialPuzzlesComplete.reduce((acc: any, puzzle: PuzzleFullData) => {
+      acc[puzzle.meta.id] = puzzle;
       return acc;
     }, {});
 
@@ -437,16 +443,38 @@ function findPuzzleCompleteData(
   });
 }
 
-function buildPlayPuzzleObject(
+async function buildPlayPuzzleObject(
   puzzle: Puzzle,
   completeData: PuzzleCompleteData | null
-): PuzzleFullData {
+): Promise<PuzzleFullData> {
   const { data, ...metaData } = puzzle;
   let difficultyRating: string | null = null;
+  let liked = false;
+  let completed = false;
+  let canPlay = true;
 
-  if (completeData !== null && completeData.difficultyRating !== null) {
-    difficultyRating = difficultyLabels[completeData.difficultyRating];
+  if (completeData !== null) {
+    liked = completeData.liked;
+    completed = completeData.completed;
+
+    if (puzzle.author === null) {
+      canPlay = (await findPreviousUnfinishedPuzzle(puzzle.id)) === null;
+    }
+    if (completeData.difficultyRating !== null) {
+      difficultyRating = difficultyLabels[completeData.difficultyRating];
+    }
   }
+
+  console.log({
+    game: data,
+    meta: {
+      ...metaData,
+      liked,
+      completed,
+      difficultyRating,
+      canPlay,
+    },
+  });
 
   return {
     game: data,
@@ -455,6 +483,7 @@ function buildPlayPuzzleObject(
       liked: completeData?.liked ?? false,
       completed: completeData?.completed ?? false,
       difficultyRating,
+      canPlay,
     },
   };
 }
@@ -462,9 +491,7 @@ function buildPlayPuzzleObject(
 async function onlyMetadata(
   where: Prisma.PuzzleWhereInput,
   userId: string,
-  orderBy:
-    | Prisma.Enumerable<Prisma.PuzzleOrderByWithRelationInput>
-    | undefined = undefined
+  orderBy: Prisma.Enumerable<Prisma.PuzzleOrderByWithRelationInput> | undefined = undefined
 ): Promise<PuzzleMetadata[]> {
   const puzzles = await client.puzzle.findMany({
     where,
@@ -472,27 +499,35 @@ async function onlyMetadata(
     include: {
       completionsData: {
         where: {
-          userId: userId,
+          userId,
         },
       },
     },
   });
 
-  return puzzles.map((puzzle) => {
-    const { data, description, completionsData, ...incompleteData } = puzzle;
-    const metaData = incompleteData as PuzzleMetadata;
+  return Promise.all(
+    puzzles.map(async (puzzle) => {
+      const { data, description, completionsData, ...incompleteData } = puzzle;
+      const metaData = incompleteData as PuzzleMetadata;
 
-    // If present, the length should always be one
-    if (completionsData !== null && completionsData.length === 1) {
-      metaData.completed = completionsData[0].completed;
-      metaData.liked = completionsData[0].liked;
-    } else {
-      metaData.completed = false;
-      metaData.liked = false;
-    }
+      // If present, the length should always be one
+      if (completionsData !== null && completionsData.length === 1) {
+        metaData.completed = completionsData[0].completed;
+        metaData.liked = completionsData[0].liked;
+      } else {
+        metaData.completed = false;
+        metaData.liked = false;
+      }
 
-    return metaData;
-  });
+      if (metaData.author !== null) {
+        metaData.canPlay = true;
+      } else {
+        metaData.canPlay = (await findPreviousUnfinishedPuzzle(metaData.id)) === null;
+      }
+
+      return metaData;
+    })
+  );
 }
 
 function findPuzzleById(puzzleId: number): Promise<Puzzle | null> {
@@ -500,6 +535,25 @@ function findPuzzleById(puzzleId: number): Promise<Puzzle | null> {
     where: {
       id: puzzleId,
     },
+  });
+}
+
+async function findPreviousUnfinishedPuzzle(puzzleId: number): Promise<{ id: number; } | null> {
+  return await client.puzzle.findFirst({
+    select: {
+      id: true
+    },
+    where: {
+      author: null,
+      id: {
+        lt: puzzleId,
+      },
+      completionsData: {
+        every: {
+          completed: false,
+        }
+      }
+    }
   });
 }
 
