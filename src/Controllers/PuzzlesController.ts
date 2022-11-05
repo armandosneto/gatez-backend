@@ -250,7 +250,7 @@ class PuzzlesController {
       difficultyRating,
     } = request.body;
 
-    if (difficulties.indexOf(difficultyRating) === -1) {
+    if (difficultyRating !in difficulties) {
       return response.status(400).send();
     }
 

@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 
-const env = process.env.NODE_ENV;
+const env = process.env.NODE_ENV || "dev";
 
 const client = new PrismaClient({
   log:
