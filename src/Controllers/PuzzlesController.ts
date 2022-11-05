@@ -6,7 +6,7 @@ import {
   difficultyRanges,
   getTrophies,
 } from "../utils/difficultyUtil";
-import { PuzzleMetadata, PuzzlePlayData } from "../Models/PuzzleModels";
+import { PuzzleMetadata, PuzzleFullData } from "../Models/PuzzleModels";
 
 type category =
   | "official"
@@ -440,7 +440,7 @@ function findPuzzleCompleteData(
 function buildPlayPuzzleObject(
   puzzle: Puzzle,
   completeData: PuzzleCompleteData | null
-): PuzzlePlayData {
+): PuzzleFullData {
   const { data, ...metaData } = puzzle;
   let difficultyRating: string | null = null;
 
