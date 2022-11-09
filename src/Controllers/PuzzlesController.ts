@@ -458,23 +458,12 @@ async function buildPlayPuzzleObject(
     completed = completeData.completed;
 
     if (puzzle.author === null) {
-      canPlay = (await findPreviousUnfinishedPuzzle(puzzle.id)) === null;
+      canPlay = await canPlayPuzzle(puzzle.id);
     }
     if (completeData.difficultyRating !== null) {
       difficultyRating = difficultyLabels[completeData.difficultyRating];
     }
   }
-
-  console.log({
-    game: data,
-    meta: {
-      ...metaData,
-      liked,
-      completed,
-      difficultyRating,
-      canPlay,
-    },
-  });
 
   return {
     game: data,
@@ -522,7 +511,7 @@ async function onlyMetadata(
       if (metaData.author !== null) {
         metaData.canPlay = true;
       } else {
-        metaData.canPlay = (await findPreviousUnfinishedPuzzle(metaData.id)) === null;
+        metaData.canPlay = await canPlayPuzzle(puzzle.id);
       }
 
       return metaData;
@@ -536,6 +525,10 @@ function findPuzzleById(puzzleId: number): Promise<Puzzle | null> {
       id: puzzleId,
     },
   });
+}
+
+async function canPlayPuzzle(puzzleId:number): Promise<boolean> {
+  return (await findPreviousUnfinishedPuzzle(puzzleId)) === null;
 }
 
 async function findPreviousUnfinishedPuzzle(puzzleId: number): Promise<{ id: number; } | null> {
