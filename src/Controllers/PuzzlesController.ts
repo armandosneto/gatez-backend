@@ -36,8 +36,6 @@ type PuzzleSearch = {
   difficulty: "easy" | "medium" | "hard" | "any";
 };
 
-const difficulties = [0, 1, 2];
-
 class PuzzlesController {
   async list(request: Request, response: Response) {
     const category = request.params.category as category;
@@ -247,20 +245,17 @@ class PuzzlesController {
       liked,
       componentsUsed,
       nandsUsed = 0,
-      difficultyRating,
     } = request.body;
 
-    if (difficultyRating !in difficulties) {
+    const difficultyRating: number  = difficultyLabels.indexOf(request.body.difficultyRating);
+    if (difficultyRating === -1) {
       return response.status(400).send("Invalid difficulty rating!");
     }
 
-    const previousCompleteData = (await findPuzzleCompleteData(
-      puzzleId,
-      userId
-    ))!;
+    const previousCompleteData = (await findPuzzleCompleteData(puzzleId, userId))!;
 
     // In reality, we only have one
-    const completeData = await client.puzzleCompleteData.updateMany({
+    await client.puzzleCompleteData.updateMany({
       where: {
         puzzleId,
         userId,
@@ -274,6 +269,8 @@ class PuzzlesController {
         completed: true,
       },
     });
+    
+    const completeData = (await findPuzzleCompleteData(puzzleId, userId))!;
 
     let likes = puzzle.likes;
     let completions = puzzle.completions;
@@ -345,7 +342,7 @@ class PuzzlesController {
     }
 
     return response.json({
-      completeData: completeData,
+      completeData,
       trophies: newTrophiesValue,
     });
   }
