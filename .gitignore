@@ -92,3 +92,4 @@ src/database/shapez_gates_db.sqlite
 src/database/*.sqlite-journal
 
 .idea/
+.DS_Store

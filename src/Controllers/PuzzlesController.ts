@@ -4,6 +4,7 @@ import { client } from "../prisma/client";
 import {
   difficultyLabels,
   difficultyRanges,
+  getDifficultyLabelByDifficulty,
   getTrophies,
 } from "../utils/difficultyUtil";
 import { PuzzleMetadata, PuzzleFullData } from "../Models/PuzzleModels";
@@ -247,7 +248,11 @@ class PuzzlesController {
       nandsUsed = 0,
     } = request.body;
 
-    const difficultyRating: number  = difficultyLabels.indexOf(request.body.difficultyRating);
+    const requestDifficultyRating = request.body.difficultyRating;
+    const difficultyRating: number | null = 
+      requestDifficultyRating === null || requestDifficultyRating === undefined
+      ? null
+      : difficultyLabels.indexOf(requestDifficultyRating);
     if (difficultyRating === -1) {
       return response.status(400).send("Invalid difficulty rating!");
     }
@@ -446,14 +451,9 @@ async function buildPlayPuzzleObject(
 ): Promise<PuzzleFullData> {
   const { data, ...metaData } = puzzle;
   let difficultyRating: string | null = null;
-  let liked = false;
-  let completed = false;
   let canPlay = true;
 
   if (completeData !== null) {
-    liked = completeData.liked;
-    completed = completeData.completed;
-
     if (puzzle.author === null) {
       canPlay = await canPlayPuzzle(puzzle.id);
     }
@@ -468,6 +468,7 @@ async function buildPlayPuzzleObject(
       ...metaData,
       liked: completeData?.liked ?? false,
       completed: completeData?.completed ?? false,
+      difficulty: getDifficultyLabelByDifficulty(puzzle.difficulty),
       difficultyRating,
       canPlay,
     },
@@ -493,7 +494,7 @@ async function onlyMetadata(
 
   return Promise.all(
     puzzles.map(async (puzzle) => {
-      const { data, description, completionsData, ...incompleteData } = puzzle;
+      const { data, description, completionsData, difficulty, ...incompleteData } = puzzle;
       const metaData = incompleteData as PuzzleMetadata;
 
       // If present, the length should always be one
@@ -510,6 +511,7 @@ async function onlyMetadata(
       } else {
         metaData.canPlay = await canPlayPuzzle(puzzle.id);
       }
+      metaData.difficulty = getDifficultyLabelByDifficulty(difficulty);
 
       return metaData;
     })
@@ -531,7 +533,7 @@ async function canPlayPuzzle(puzzleId:number): Promise<boolean> {
 async function findPreviousUnfinishedPuzzle(puzzleId: number): Promise<{ id: number; } | null> {
   return await client.puzzle.findFirst({
     select: {
-      id: true
+      id: true,
     },
     where: {
       author: null,

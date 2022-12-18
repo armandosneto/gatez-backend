@@ -24,3 +24,17 @@ export function getTrophies(difficulty: number): number {
     return 400;
   }
 }
+
+export function getDifficultyLabelByDifficulty(difficulty: number | null): string | null {
+  if (difficulty === null) {
+    return null;
+  }
+
+  if (difficulty < difficultyRanges.easy.max) {
+    return difficultyLabels[0];
+  } else if (difficulty < difficultyRanges.medium.max) {
+    return difficultyLabels[1];
+  } else {
+    return difficultyLabels[2];
+  }
+}

@@ -1,8 +1,9 @@
 import { Puzzle } from ".prisma/client";
 
-export type PuzzleMetadata = Omit<Puzzle, "data" | "desciption"> & {
+export type PuzzleMetadata = Omit<Puzzle, "data" | "desciption" | "difficulty"> & {
   completed: boolean;
   liked: boolean;
+  difficulty: string | null;
   canPlay: boolean;
 };
 
