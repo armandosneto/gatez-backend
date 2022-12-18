@@ -14,11 +14,17 @@ Your need `node` (at least version v16.15.1) and `yarn` (version v1.22.19) insta
 
 ## How to run
 
-Run the server in dev mode by running `yarn dev` in the root of the project. By default the server will listen on port 15001 and all changes will trigger a restart. A default database containing the premade (official) levels will be copied to the correct database directory. If you do not wish to use it, create a fresh database by running `yarn prisma migrate dev`. These premade levers are only available in Brazilian Portuguese for now, but we'll work on adding multi language support for every level.
+Run the server in dev mode by running `yarn dev` in the root of the project. By default the server will listen on port 15001 and all changes will trigger a restart. A default database containing the premade (official) levels will be copied to the correct database directory. If you do not wish to use it, create a fresh database by running `yarn prisma migrate dev`. These premade levels are only available in Brazilian Portuguese for now, but we'll work on adding multi language support for every level.
 
-You'll also need to create a .env file in the project root, it must contain a JWT token key, in the form:
+You'll also need to create a .env file in the project root. It must contain a JWT token key, in the form:
 
     JWT_KEY = "any key here"
+
+The application will run in the dev env by default, logging all SQL executed by the prisma client. You can change this by setting
+
+    NODE_ENV = "prod"
+
+on the .env file.
 
 There is no production mode for now.
 
