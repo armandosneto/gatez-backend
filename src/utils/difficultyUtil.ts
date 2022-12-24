@@ -38,3 +38,16 @@ export function getDifficultyLabelByDifficulty(difficulty: number | null): strin
     return difficultyLabels[2];
   }
 }
+
+// Needs to return a number between 0 and 1 no matter the inputs
+export function calculateDifficulty(
+  averageTime: number,
+  averageDifficulty: number | null
+): number {
+  if (!averageDifficulty) {
+    averageDifficulty = Number.MIN_VALUE;
+  }
+  return (
+    1 / (1 + Math.pow(Math.E, -averageTime / 300)) - 0.5 + averageDifficulty / 4
+  );
+}

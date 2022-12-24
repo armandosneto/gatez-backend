@@ -2,6 +2,7 @@ import { Puzzle, PuzzleCompleteData, Prisma } from "@prisma/client";
 import { Request, Response } from "express";
 import { client } from "../prisma/client";
 import {
+  calculateDifficulty,
   difficultyLabels,
   difficultyRanges,
   getDifficultyLabelByDifficulty,
@@ -36,6 +37,7 @@ type PuzzleSearch = {
   includeCompleted: boolean;
   difficulty: "easy" | "medium" | "hard" | "any";
 };
+
 
 class PuzzlesController {
   async list(request: Request, response: Response) {
@@ -392,6 +394,9 @@ class PuzzlesController {
     const userId = response.locals.user.id;
 
     const puzzle = await client.puzzle.findFirst({
+      select: {
+        id: true,
+      },
       where: {
         id: puzzleId,
         author: userId,
@@ -579,19 +584,6 @@ function recalculateAverage(
     oldValue = oldAverage;
   }
   return oldAverage - oldValue / total + newValue / total;
-}
-
-// Needs to return a number between 0 and 1 no matter the inputs
-function calculateDifficulty(
-  averageTime: number,
-  averageDifficulty: number | null
-): number {
-  if (!averageDifficulty) {
-    averageDifficulty = Number.MIN_VALUE;
-  }
-  return (
-    1 / (1 + Math.pow(Math.E, -averageTime / 300)) - 0.5 + averageDifficulty / 4
-  );
 }
 
 export { PuzzlesController };

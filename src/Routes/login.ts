@@ -14,6 +14,6 @@ router.post("/",
 
 router.get("/",
     ensureAuthenticated,
-    authenticateController.respondLoggedIn);
+    authenticateController.validateToken);
 
 export default router;

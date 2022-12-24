@@ -19,6 +19,9 @@ class UserController {
     email = name;
 
     const userAlreadyExists = await client.user.findFirst({
+      select: {
+        id: true
+      },
       where: {
         OR: [
           {

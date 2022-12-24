@@ -42,7 +42,7 @@ class AuthenticateController {
     return response.json(data);
   }
 
-  async respondLoggedIn(request: Request, response: Response) {
+  async validateToken(request: Request, response: Response) {
     return response.json(removeSensitiveData(response.locals.user));
   }
 }
