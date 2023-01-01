@@ -4,12 +4,14 @@ import helmet from "helmet";
 import "express-async-errors";
 import { router } from "./Routes/routes";
 import { AppError } from "./Errors/AppError";
+import { populateLocale } from "./middlewares/populateLocale";
 
 const app = express();
 
 app.use(express.json());
 app.use(helmet());
 app.use(cors());
+app.use(populateLocale);
 app.use(router);
 
 app.use(

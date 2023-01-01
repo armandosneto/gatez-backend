@@ -10,15 +10,15 @@ datasource db {
 model User {
   id               String               @id @default(uuid())
   name             String               @unique
-  // TODO implement email confirmation support in the future
   email            String               @unique
   password         String
   confirmed        Boolean              @default(false)
   createdAt        DateTime             @default(now())
+  trophies         Int                  @default(0)
   puzzles          Puzzle[]
   completedPuzzles PuzzleCompleteData[]
   puzzlesResports  PuzzleReport[]
-  trophies         Int                  @default(0)
+  translations     PuzzleTranslation[]
 
   @@map("users")
 }
@@ -40,11 +40,13 @@ model Puzzle {
   description             String
   afterCompletingMessage  String?
   minimumComponents       Int
-  maximumComponents       Int? // TODO implement NAND counting
+  maximumComponents       Int?
   minimumNands            Int
   createdAt               DateTime             @default(now())
+  locale                  String               @default("en")
   completionsData         PuzzleCompleteData[]
   puzzleReports           PuzzleReport[]
+  translations            PuzzleTranslation[]
 
   @@map("puzzles")
 }
@@ -56,7 +58,7 @@ model PuzzleCompleteData {
   puzzle           Puzzle   @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
   puzzleId         Int
   timeTaken        Int?
-  componentsUsed   Int? // TODO implement NAND counting
+  componentsUsed   Int?
   nandsUsed        Int?
   difficultyRating Int?
   completed        Boolean  @default(false)
@@ -73,8 +75,25 @@ model PuzzleReport {
   userId    String
   puzzle    Puzzle   @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
   puzzleId  Int
-  createdAt DateTime @default(now())
   reason    String
+  createdAt DateTime @default(now())
 
   @@map("puzzle_reports")
+}
+
+// TODO add afterCompletingMessage in the future if it starts being used
+model PuzzleTranslation {
+  id          String    @id @default(uuid())
+  puzzle      Puzzle    @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+  puzzleId    Int
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId      String?
+  locale      String
+  title       String
+  description String
+  approved    Boolean
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, puzzleId, locale])
+  @@map("puzzle_translations")
 }

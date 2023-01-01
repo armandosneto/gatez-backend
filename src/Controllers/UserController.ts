@@ -2,18 +2,12 @@ import { Request, Response } from "express";
 import { hash } from "bcryptjs";
 import { AppError } from "../Errors/AppError";
 import { User } from "@prisma/client";
-import { validationResult } from "express-validator";
 import { removeSensitiveData } from "../utils/userUtil";
 import { userService } from "../Services/UserService";
 
 
 class UserController {
   async create(request: Request, response: Response) {
-    const errors = validationResult(request);
-    if (!errors.isEmpty()) {
-      return response.status(400).json({ errors: errors.array() });
-    }
-
     let { name, email, password } = request.body as User;
     // TODO implement email use and validation
     email = name;

@@ -4,11 +4,11 @@ import { client } from "../prisma/client";
 
 class UserService {
   get(id: string): Promise<User | null> {
-    return client.user.findFirst({ where: { id } });
+    return client.user.findUnique({ where: { id } });
   }
 
   getByName(name: string): Promise<User | null> {
-    return client.user.findFirst({ where: { name } });
+    return client.user.findUnique({ where: { name } });
   }
 
   createUser(name: string, email: string, passwordHash: string): Promise<User> {

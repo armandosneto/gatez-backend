@@ -1,14 +1,14 @@
 import { Prisma, Puzzle, PuzzleCompleteData, User } from "@prisma/client";
-import { PuzzleFullData, PuzzleMetadata } from "../Models/PuzzleModels";
+import { PuzzleMetadata } from "../Models/PuzzleModels";
 import { client } from "../prisma/client";
 import {
   calculateDifficulty,
-  difficultyLabels,
   difficultyRanges,
   getDifficultyLabelByDifficulty,
   getTrophies,
 } from "../utils/difficultyUtil";
 import { puzzleCompleteDataService } from "./PuzzleCompleteDataService";
+import { puzzleTranslationService } from "./PuzzleTranslationService";
 
 type Category = "official" | "top-rated" | "new" | "easy" | "medium" | "hard" | "mine" | "completed";
 
@@ -19,7 +19,7 @@ type Difficulty = "easy" | "medium" | "hard" | "any";
 
 class PuzzleService {
   get(puzzleId: number): Promise<Puzzle | null> {
-    return client.puzzle.findFirst({
+    return client.puzzle.findUnique({
       where: {
         id: puzzleId,
       },
@@ -56,14 +56,15 @@ class PuzzleService {
     });
   }
 
-  listByCategory(category: Category, userId: string): Promise<PuzzleMetadata[]> {
+  listByCategory(category: Category, userId: string, locale: string): Promise<PuzzleMetadata[]> {
     switch (category) {
       case "official":
         return this._onlyMetadata(
           {
             user: null,
           },
-          userId
+          userId,
+          locale
         );
 
       case "completed":
@@ -76,7 +77,8 @@ class PuzzleService {
               },
             },
           },
-          userId
+          userId,
+          locale
         );
 
       case "mine":
@@ -84,16 +86,17 @@ class PuzzleService {
           {
             author: userId,
           },
-          userId
+          userId,
+          locale
         );
 
       case "new":
-        return this._onlyMetadata({}, userId, {
+        return this._onlyMetadata({}, userId, locale, {
           createdAt: "desc",
         });
 
       case "top-rated":
-        return this._onlyMetadata({}, userId, {
+        return this._onlyMetadata({}, userId, locale, {
           likes: "desc",
         });
 
@@ -108,7 +111,8 @@ class PuzzleService {
               lt: range["max"],
             },
           },
-          userId
+          userId,
+          locale
         );
 
       default:
@@ -121,7 +125,8 @@ class PuzzleService {
     duration: Duration,
     difficulty: Difficulty,
     includeCompleted: boolean,
-    userId: string
+    userId: string,
+    locale: string
   ): Promise<PuzzleMetadata[]> {
     const where: Prisma.PuzzleWhereInput = {
       OR: [
@@ -175,7 +180,7 @@ class PuzzleService {
       }
     }
 
-    return this._onlyMetadata(where, userId);
+    return this._onlyMetadata(where, userId, locale);
   }
 
   createPuzzle(
@@ -183,7 +188,7 @@ class PuzzleService {
     title: string,
     data: string,
     description: string,
-    minimumComponents: number | null,
+    minimumComponents: number,
     minimumNands: number | null,
     maximumComponents: number | null,
     author: User
@@ -195,10 +200,11 @@ class PuzzleService {
         data,
         author: author.id,
         authorName: author.name,
-        description: description,
-        minimumComponents: minimumComponents || 1,
+        description,
+        minimumComponents,
         maximumComponents,
-        minimumNands: minimumNands || 1,
+        // TODO when NAND counting is implemented, remove this default value
+        minimumNands: minimumNands ?? 1,
       },
     });
   }
@@ -304,39 +310,10 @@ class PuzzleService {
     return (await this._findPreviousUnfinishedPuzzle(puzzleId)) === null;
   }
 
-  private async _buildPlayPuzzleObject(
-    puzzle: Puzzle,
-    completeData: PuzzleCompleteData | null
-  ): Promise<PuzzleFullData> {
-    const { data, ...metaData } = puzzle;
-    let difficultyRating: string | null = null;
-    let canPlay = true;
-
-    if (completeData !== null) {
-      if (puzzle.author === null) {
-        canPlay = await this.canPlayPuzzle(puzzle.id);
-      }
-      if (completeData.difficultyRating !== null) {
-        difficultyRating = difficultyLabels[completeData.difficultyRating];
-      }
-    }
-
-    return {
-      game: data,
-      meta: {
-        ...metaData,
-        liked: completeData?.liked ?? false,
-        completed: completeData?.completed ?? false,
-        difficulty: getDifficultyLabelByDifficulty(puzzle.difficulty),
-        difficultyRating,
-        canPlay,
-      },
-    };
-  }
-
   private async _onlyMetadata(
     where: Prisma.PuzzleWhereInput,
     userId: string,
+    locale: string,
     orderBy: Prisma.Enumerable<Prisma.PuzzleOrderByWithRelationInput> | undefined = undefined
   ): Promise<PuzzleMetadata[]> {
     const puzzles = await client.puzzle.findMany({
@@ -348,21 +325,31 @@ class PuzzleService {
             userId,
           },
         },
+        translations: {
+          where: {
+            locale,
+            approved: true,
+          },
+        },
       },
     });
 
     return Promise.all(
       puzzles.map(async (puzzle) => {
-        const { data, description, completionsData, difficulty, ...incompleteData } = puzzle;
+        const { data, description, completionsData, translations, difficulty, ...incompleteData } = puzzle;
         const metaData = incompleteData as PuzzleMetadata;
 
         // If present, the length should always be one
-        if (completionsData !== null && completionsData.length === 1) {
+        if (completionsData.length > 0) {
           metaData.completed = completionsData[0].completed;
           metaData.liked = completionsData[0].liked;
         } else {
           metaData.completed = false;
           metaData.liked = false;
+        }
+
+        if (translations.length > 0) {
+          metaData.title = translations[0].title;
         }
 
         if (metaData.author !== null) {

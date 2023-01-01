@@ -10,7 +10,7 @@ export type PuzzleMetadata = Omit<Puzzle, "data" | "desciption" | "difficulty"> 
 export type PuzzleFullData = {
   game: string;
   meta: PuzzleMetadata & {
-    description: string | null;
+    description: string;
     difficultyRating: string | null;
   };
 };

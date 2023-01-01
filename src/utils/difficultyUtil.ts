@@ -39,6 +39,12 @@ export function getDifficultyLabelByDifficulty(difficulty: number | null): strin
   }
 }
 
+export function getDifficultyByDifficultyLabel(difficultyLabel: any): number | null {
+  return difficultyLabel === null || difficultyLabel === undefined
+    ? null
+    : difficultyLabels.indexOf(difficultyLabel);
+}
+
 // Needs to return a number between 0 and 1 no matter the inputs
 export function calculateDifficulty(
   averageTime: number,

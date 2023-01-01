@@ -4,18 +4,20 @@ import { client } from "../prisma/client";
 
 class PuzzleCompleteDataService {
   getByPuzzleAndUser(puzzleId: number, userId: string): Promise<PuzzleCompleteData | null> {
-    return client.puzzleCompleteData.findFirst({
+    return client.puzzleCompleteData.findUnique({
       where: {
-        puzzleId,
-        userId,
+        userId_puzzleId: {
+          puzzleId,
+          userId,
+        },
       },
     });
   }
 
-  async create(puzzle: Puzzle, userId: string): Promise<void> {
+  async create(puzzle: Puzzle, userId: string): Promise<PuzzleCompleteData> {
     const puzzleId = puzzle.id;
 
-    await client.puzzleCompleteData.create({
+    const completeData = await client.puzzleCompleteData.create({
       data: {
         userId,
         puzzleId,
@@ -32,9 +34,11 @@ class PuzzleCompleteDataService {
         downloads: puzzle.downloads,
       },
     });
+
+    return completeData;
   }
 }
 
 const puzzleCompleteDataService = new PuzzleCompleteDataService();
 
-export { puzzleCompleteDataService }
+export { puzzleCompleteDataService };
