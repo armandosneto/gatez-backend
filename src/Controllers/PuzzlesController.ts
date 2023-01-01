@@ -1,11 +1,11 @@
-import { Puzzle, PuzzleCompleteData } from "@prisma/client";
+import { Puzzle, PuzzleCompleteData, User } from "@prisma/client";
 import { Request, Response } from "express";
 import {
   difficultyLabels,
   getDifficultyLabelByDifficulty,
   getDifficultyByDifficultyLabel,
 } from "../utils/difficultyUtil";
-import { PuzzleFullData } from "../Models/PuzzleModels";
+import { MetadataWhitoutDescription, PuzzleFullData, PuzzleMetadata } from "../Models/PuzzleModels";
 import { Category, Difficulty, Duration, puzzleService } from "../Services/PuzzleService";
 import { puzzleReportService } from "../Services/PuzzleReportService";
 import { puzzleCompleteDataService } from "../Services/PuzzleCompleteDataService";
@@ -28,8 +28,10 @@ class PuzzlesController {
     const category = request.params.category as Category;
     const userId = response.locals.user.id as string;
     const locale = response.locals.locale as string;
+    
+    const metadata = await puzzleService.listByCategory(category, userId, locale);
 
-    return response.json(await puzzleService.listByCategory(category, userId, locale));
+    return response.json(removeDescription(metadata));
   }
 
   async search(request: Request, response: Response) {
@@ -39,7 +41,7 @@ class PuzzlesController {
 
     let metadata = await puzzleService.searchPuzzles(searchTerm, duration, difficulty, includeCompleted, userId, locale);
 
-    return response.json(metadata);
+    return response.json(removeDescription(metadata));
   }
 
   async report(request: Request, response: Response) {
@@ -61,9 +63,10 @@ class PuzzlesController {
     const { shortKey, title, data, description, minimumComponents, minimumNands, maximumComponents } =
       request.body as PuzzleSubmit;
 
-    const user = response.locals.user;
+    const user = response.locals.user as User;
+    const locale = response.locals.locale as string;
 
-    const puzzle = await puzzleService.createPuzzle(
+    const puzzle = await puzzleService.create(
       shortKey,
       title,
       data,
@@ -71,7 +74,8 @@ class PuzzlesController {
       minimumComponents,
       minimumNands,
       maximumComponents,
-      user
+      user,
+      locale
     );
 
     return response.status(201).json(puzzle);
@@ -191,6 +195,13 @@ class PuzzlesController {
 
     return response.json(snapshot);
   }
+}
+
+function removeDescription(metadatas: PuzzleMetadata[]): MetadataWhitoutDescription[] {
+  return metadatas.map(metadata => {
+    const { description, ...rest } = metadata;
+    return rest;
+  })
 }
 
 // TODO move to service and extract duplicate code from _onlyMetadata

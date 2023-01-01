@@ -8,7 +8,6 @@ import {
   getTrophies,
 } from "../utils/difficultyUtil";
 import { puzzleCompleteDataService } from "./PuzzleCompleteDataService";
-import { puzzleTranslationService } from "./PuzzleTranslationService";
 
 type Category = "official" | "top-rated" | "new" | "easy" | "medium" | "hard" | "mine" | "completed";
 
@@ -183,7 +182,7 @@ class PuzzleService {
     return this._onlyMetadata(where, userId, locale);
   }
 
-  createPuzzle(
+  create(
     shortKey: string,
     title: string,
     data: string,
@@ -191,7 +190,8 @@ class PuzzleService {
     minimumComponents: number,
     minimumNands: number | null,
     maximumComponents: number | null,
-    author: User
+    author: User,
+    locale:string,
   ): Promise<Puzzle> {
     return client.puzzle.create({
       data: {
@@ -205,6 +205,7 @@ class PuzzleService {
         maximumComponents,
         // TODO when NAND counting is implemented, remove this default value
         minimumNands: minimumNands ?? 1,
+        locale: locale,
       },
     });
   }
@@ -336,7 +337,7 @@ class PuzzleService {
 
     return Promise.all(
       puzzles.map(async (puzzle) => {
-        const { data, description, completionsData, translations, difficulty, ...incompleteData } = puzzle;
+        const { data, completionsData, translations, difficulty, ...incompleteData } = puzzle;
         const metaData = incompleteData as PuzzleMetadata;
 
         // If present, the length should always be one
@@ -350,6 +351,7 @@ class PuzzleService {
 
         if (translations.length > 0) {
           metaData.title = translations[0].title;
+          metaData.description = translations[0].description;
         }
 
         if (metaData.author !== null) {
@@ -364,8 +366,8 @@ class PuzzleService {
     );
   }
 
-  private async _findPreviousUnfinishedPuzzle(puzzleId: number): Promise<{ id: number } | null> {
-    return await client.puzzle.findFirst({
+  private _findPreviousUnfinishedPuzzle(puzzleId: number): Promise<{ id: number } | null> {
+    return client.puzzle.findFirst({
       select: {
         id: true,
       },
