@@ -1,13 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError } from "../Errors/AppError";
 import { verify } from "jsonwebtoken";
-import { client } from "../prisma/client";
+import { userService } from "../Services/UserService";
 
-export async function ensureAuthenticated(
-  request: Request,
-  response: Response,
-  next: NextFunction
-) {
+export async function ensureAuthenticated(request: Request, response: Response, next: NextFunction) {
   const authToken = request.headers.authorization;
 
   if (!authToken) {
@@ -23,7 +19,7 @@ export async function ensureAuthenticated(
       sub: string;
     };
 
-    const user = await client.user.findFirst({ where: { id: sub } });
+    const user = await userService.get(sub);
     if (!user) {
       throw new Error();
     }

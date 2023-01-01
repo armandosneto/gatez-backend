@@ -30,11 +30,13 @@ There is no production mode for now.
 
 ## Future features/improvements in probable order of implementation:
 
--   Refactor the code in PuzzlesController.ts;
+-   Refactor and improve the code in general;
+-   Write tests at least covering all endpoints;
 -   Improving security and performance;
+-   Implement profanity checks on submitted content and block potentially offensive texts;
 -   Implement pagination on puzzle requests;
 -   Implement basic moderation features, where admin users can view and review reports, deleting infringing puzzles and punishing users, and some automatic moderation (temporarily hiding highly reported puzzles until moderation);
--   Implement multi lingual puzzle titles and descriptions, that can be translated by users or automatically;
+-   Check if the user submitted puzzle is a valid one and if sumitted solutions are valid;
 -   Deploy the application;
 
 ## License

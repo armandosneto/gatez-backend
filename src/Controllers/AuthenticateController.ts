@@ -1,24 +1,18 @@
 import { Request, Response } from "express";
 import { AppError } from "../Errors/AppError";
-import { client } from "../prisma/client";
 import { compare } from "bcryptjs";
 import { sign } from "jsonwebtoken";
-import { validationResult } from "express-validator";
 import { removeSensitiveData } from "../utils/userUtil";
+import { userService } from "../Services/UserService";
 
 const defaultAuthErrorMessage = "name or password is wrong!";
 
 
 class AuthenticateController {
   async login(request: Request, response: Response) {
-    const errors = validationResult(request);
-    if (!errors.isEmpty()) {
-      throw new AppError(defaultAuthErrorMessage, 401);
-    }
-
     const { name, password } = request.body;
 
-    const user = await client.user.findFirst({ where: { name } });
+    const user = await userService.getByName(name);
 
     if (!user) {
       throw new AppError(defaultAuthErrorMessage, 401);
@@ -47,4 +41,6 @@ class AuthenticateController {
   }
 }
 
-export { AuthenticateController };
+const authenticateController = new AuthenticateController();
+
+export { authenticateController };
