@@ -154,7 +154,7 @@ class PuzzlesController {
 
     const puzzle = await puzzleService.get(puzzleId);
     if (!puzzle) {
-      return response.status(404);
+      return response.status(404).send();
     }
 
     const isOwener = await puzzleService.isUserOwner(puzzleId, userId);
