@@ -47,7 +47,7 @@ class PuzzleService {
     return !!id;
   }
 
-  delete(puzzleId: number): Promise<void> {
+  delete(puzzleId: number): Promise<Puzzle> {
     return client.puzzle.delete({
       where: {
         id: puzzleId,
