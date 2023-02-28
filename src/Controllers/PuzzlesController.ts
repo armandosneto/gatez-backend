@@ -140,7 +140,7 @@ class PuzzlesController {
     const isOwener = await puzzleService.isUserOwner(puzzleId, userId);
 
     if (!isOwener) {
-      return response.json({ success: false });
+      return response.status(403).json({ success: false });
     }
 
     await puzzleService.delete(puzzleId);
