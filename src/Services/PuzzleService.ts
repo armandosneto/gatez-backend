@@ -223,11 +223,12 @@ class PuzzleService {
 
     const previousCompleteData = (await puzzleCompleteDataService.getByPuzzleAndUser(puzzleId, user.id))!;
 
-    // In reality, we only have one
-    await client.puzzleCompleteData.updateMany({
+    await client.puzzleCompleteData.update({
       where: {
-        puzzleId,
-        userId: user.id,
+        userId_puzzleId: {
+          puzzleId,
+          userId: user.id,
+        },
       },
       data: {
         timeTaken: time,
@@ -294,7 +295,7 @@ class PuzzleService {
           id: user.id,
         },
         data: {
-          trophies: user.trophies + getTrophies(newDifficulty),
+          trophies: newTrophiesValue,
         },
       });
     }
