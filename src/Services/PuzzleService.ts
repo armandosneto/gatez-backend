@@ -1,5 +1,5 @@
 import { Prisma, Puzzle, PuzzleCompleteData, User } from "@prisma/client";
-import { PuzzleMetadata } from "../Models/PuzzleModels";
+import { PuzzleFullData, PuzzleMetadata } from "../Models/PuzzleModels";
 import { client } from "../prisma/client";
 import {
   calculateDifficulty,
@@ -8,13 +8,22 @@ import {
   getTrophies,
 } from "../utils/difficultyUtil";
 import { puzzleCompleteDataService } from "./PuzzleCompleteDataService";
+import { difficultyLabels } from "../utils/difficultyUtil";
+import { puzzleTranslationService } from "./PuzzleTranslationService";
 
-type Category = "official" | "top-rated" | "new" | "easy" | "medium" | "hard" | "mine" | "completed";
+type Category =
+  | "official"
+  | "top-rated"
+  | "new"
+  | "easy"
+  | "medium"
+  | "hard"
+  | "mine"
+  | "completed";
 
 type Duration = "short" | "medium" | "long" | "any";
 
 type Difficulty = "easy" | "medium" | "hard" | "any";
-
 
 class PuzzleService {
   get(puzzleId: number): Promise<Puzzle | null> {
@@ -191,7 +200,7 @@ class PuzzleService {
     minimumNands: number | null,
     maximumComponents: number | null,
     author: User,
-    locale:string,
+    locale: string
   ): Promise<Puzzle> {
     return client.puzzle.create({
       data: {
@@ -221,7 +230,10 @@ class PuzzleService {
   ): Promise<{ completeData: PuzzleCompleteData; trophies: number | undefined }> {
     const puzzleId = puzzle.id;
 
-    const previousCompleteData = (await puzzleCompleteDataService.getByPuzzleAndUser(puzzleId, user.id))!;
+    const previousCompleteData = (await puzzleCompleteDataService.getByPuzzleAndUser(
+      puzzleId,
+      user.id
+    ))!;
 
     await client.puzzleCompleteData.update({
       where: {
@@ -312,6 +324,45 @@ class PuzzleService {
     return (await this._findPreviousUnfinishedPuzzle(puzzleId)) === null;
   }
 
+  async buildPlayPuzzleObject(
+    puzzle: Puzzle,
+    completeData: PuzzleCompleteData,
+    locale: string
+  ): Promise<PuzzleFullData> {
+    const { data, ...metaData } = puzzle;
+    let difficultyRating: string | null = null;
+    let canPlay = true;
+
+    if (puzzle.author === null) {
+      canPlay = await this.canPlayPuzzle(puzzle.id);
+    }
+
+    if (completeData?.difficultyRating != null) {
+      difficultyRating = difficultyLabels[completeData.difficultyRating];
+    }
+
+    if (locale !== puzzle.locale) {
+
+      const translation = await puzzleTranslationService.findApprovedTranslation(puzzle.id, locale);
+      if (translation) {
+        metaData.title = translation.title;
+        metaData.description = translation.description;
+      }
+    }
+
+    return {
+      game: data,
+      meta: {
+        ...metaData,
+        liked: completeData?.liked ?? false,
+        completed: completeData?.completed ?? false,
+        difficulty: getDifficultyLabelByDifficulty(puzzle.difficulty),
+        difficultyRating,
+        canPlay,
+      },
+    };
+  }
+
   private async _onlyMetadata(
     where: Prisma.PuzzleWhereInput,
     userId: string,
@@ -327,42 +378,12 @@ class PuzzleService {
             userId,
           },
         },
-        translations: {
-          where: {
-            locale,
-            approved: true,
-          },
-        },
       },
     });
 
     return Promise.all(
       puzzles.map(async (puzzle) => {
-        const { data, completionsData, translations, difficulty, ...incompleteData } = puzzle;
-        const metaData = incompleteData as PuzzleMetadata;
-
-        // If present, the length should always be one
-        if (completionsData.length > 0) {
-          metaData.completed = completionsData[0].completed;
-          metaData.liked = completionsData[0].liked;
-        } else {
-          metaData.completed = false;
-          metaData.liked = false;
-        }
-
-        if (translations.length > 0) {
-          metaData.title = translations[0].title;
-          metaData.description = translations[0].description;
-        }
-
-        if (metaData.author !== null) {
-          metaData.canPlay = true;
-        } else {
-          metaData.canPlay = await this.canPlayPuzzle(puzzle.id);
-        }
-        metaData.difficulty = getDifficultyLabelByDifficulty(difficulty);
-
-        return metaData;
+        return (await this.buildPlayPuzzleObject(puzzle, puzzle.completionsData[0], locale)).meta;
       })
     );
   }
@@ -386,7 +407,11 @@ class PuzzleService {
     });
   }
 
-  private _calculateNewAverage(oldAverage: number | null, oldTotal: number, newValue: number | null): number | null {
+  private _calculateNewAverage(
+    oldAverage: number | null,
+    oldTotal: number,
+    newValue: number | null
+  ): number | null {
     if (oldAverage === null) {
       return newValue;
     }

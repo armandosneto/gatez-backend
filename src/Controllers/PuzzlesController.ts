@@ -130,7 +130,7 @@ class PuzzlesController {
       completeData = await puzzleCompleteDataService.create(puzzle, userId);
     }
 
-    return response.json(await buildPlayPuzzleObject(puzzle, completeData!, locale));
+    return response.json(await puzzleService.buildPlayPuzzleObject(puzzle, completeData!, locale));
   }
 
   async delete(request: Request, response: Response) {
@@ -202,44 +202,6 @@ function removeDescription(metadatas: PuzzleMetadata[]): MetadataWhitoutDescript
     const { description, ...rest } = metadata;
     return rest;
   })
-}
-
-// TODO move to service and extract duplicate code from _onlyMetadata
-async function buildPlayPuzzleObject(
-  puzzle: Puzzle,
-  completeData: PuzzleCompleteData,
-  locale: string
-): Promise<PuzzleFullData> {
-  const { data, ...metaData } = puzzle;
-  let difficultyRating: string | null = null;
-  let canPlay = true;
-
-  if (puzzle.author === null) {
-    canPlay = await puzzleService.canPlayPuzzle(puzzle.id);
-  }
-  if (completeData.difficultyRating !== null) {
-    difficultyRating = difficultyLabels[completeData.difficultyRating];
-  }
-
-  if (locale !== puzzle.locale) {
-    const translation = await puzzleTranslationService.findApprovedTranslation(puzzle.id, locale);
-    if (translation) {
-      metaData.title = translation.title;
-      metaData.description = translation.description;
-    }
-  }
-
-  return {
-    game: data,
-    meta: {
-      ...metaData,
-      liked: completeData?.liked ?? false,
-      completed: completeData?.completed ?? false,
-      difficulty: getDifficultyLabelByDifficulty(puzzle.difficulty),
-      difficultyRating,
-      canPlay,
-    },
-  };
 }
 
 const puzzlesController = new PuzzlesController();
