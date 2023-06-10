@@ -8,7 +8,7 @@ function validationErrorToString(error: ValidationError): string {
   }`;
 }
 
-export async function checkForErrors(request: Request, response: Response, next: NextFunction) {
+export async function checkForErrors(request: Request, response: Response, next: NextFunction): Promise<void> {
   const errors = validationResult(request);
   if (!errors.isEmpty()) {
     throw new AppError(

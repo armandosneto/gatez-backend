@@ -15,6 +15,9 @@ model User {
   confirmed        Boolean              @default(false)
   createdAt        DateTime             @default(now())
   trophies         Int                  @default(0)
+  // references the enum UserRole
+  userRole         Int                  @default(0)
+  banned           Boolean              @default(false)
   puzzles          Puzzle[]
   completedPuzzles PuzzleCompleteData[]
   puzzlesResports  PuzzleReport[]
@@ -44,6 +47,7 @@ model Puzzle {
   minimumNands            Int
   createdAt               DateTime             @default(now())
   locale                  String               @default("en")
+  hidden                  Boolean              @default(false)
   completionsData         PuzzleCompleteData[]
   puzzleReports           PuzzleReport[]
   translations            PuzzleTranslation[]
@@ -76,6 +80,8 @@ model PuzzleReport {
   puzzle    Puzzle   @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
   puzzleId  Int
   reason    String
+  legit     Boolean  @default(false)
+  reviewed  Boolean  @default(false)
   createdAt DateTime @default(now())
 
   @@map("puzzle_reports")

@@ -3,7 +3,7 @@ import { AppError } from "../Errors/AppError";
 import { verify } from "jsonwebtoken";
 import { userService } from "../Services/UserService";
 
-export async function ensureAuthenticated(request: Request, response: Response, next: NextFunction) {
+export async function ensureAuthenticated(request: Request, response: Response, next: NextFunction): Promise<void> {
   const authToken = request.headers.authorization;
 
   if (!authToken) {

@@ -369,6 +369,8 @@ class PuzzleService {
     locale: string,
     orderBy: Prisma.Enumerable<Prisma.PuzzleOrderByWithRelationInput> | undefined = undefined
   ): Promise<PuzzleMetadata[]> {
+    where.hidden = false;
+
     const puzzles = await client.puzzle.findMany({
       where,
       orderBy,
@@ -379,6 +381,8 @@ class PuzzleService {
           },
         },
       },
+      // TODO paginate the puzzles
+      take: 100,
     });
 
     return Promise.all(
