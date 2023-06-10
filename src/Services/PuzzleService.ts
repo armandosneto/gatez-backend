@@ -382,7 +382,7 @@ class PuzzleService {
         },
       },
       // TODO paginate the puzzles
-      take: 100,
+      take: 500,
     });
 
     return Promise.all(

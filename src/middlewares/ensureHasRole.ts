@@ -10,7 +10,7 @@ export function ensureHasRole(
     const user = response.locals.user as User;
 
     if (necesseryRole > user.userRole) {
-      throw new AppError("You don't have permission to perform this action!", 402);
+      throw new AppError("You don't have permission to perform this action!", 403);
     }
 
     return next();
