@@ -17,13 +17,28 @@ model User {
   trophies         Int                  @default(0)
   // references the enum UserRole
   userRole         Int                  @default(0)
-  banned           Boolean              @default(false)
   puzzles          Puzzle[]
   completedPuzzles PuzzleCompleteData[]
   puzzlesResports  PuzzleReport[]
   translations     PuzzleTranslation[]
+  bans             UserBan[]            @relation(name: "bans")
+  bansExpedited    UserBan[]            @relation(name: "bansExpedited")
 
   @@map("users")
+}
+
+model UserBan {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(name: "bans", fields: [userId], references: [id], onDelete: Cascade)
+  reason       String
+  moderatorId  String
+  moderator    User     @relation(name: "bansExpedited", fields: [moderatorId], references: [id], onDelete: Cascade)
+  lifted       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  durationDays Int
+
+  @@map("user_bans")
 }
 
 model Puzzle {
@@ -89,16 +104,16 @@ model PuzzleReport {
 
 // TODO add afterCompletingMessage in the future if it starts being used
 model PuzzleTranslation {
-  id          String    @id @default(uuid())
-  puzzle      Puzzle    @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid())
+  puzzle      Puzzle   @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
   puzzleId    Int
-  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   userId      String?
   locale      String
   title       String
   description String
   approved    Boolean
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime @default(now())
 
   @@unique([userId, puzzleId, locale])
   @@map("puzzle_translations")
