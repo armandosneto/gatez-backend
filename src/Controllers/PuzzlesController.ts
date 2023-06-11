@@ -1,20 +1,14 @@
-import { Puzzle, PuzzleCompleteData, User } from "@prisma/client";
+import { Puzzle, User } from "@prisma/client";
 import { Request, Response } from "express";
-import {
-  difficultyLabels,
-  getDifficultyLabelByDifficulty,
-  getDifficultyByDifficultyLabel,
-} from "../utils/difficultyUtil";
+import { getDifficultyByDifficultyLabel } from "../utils/difficultyUtil";
 import { MetadataWhitoutDescription, PuzzleFullData, PuzzleMetadata } from "../Models/PuzzleModels";
 import { Category, Difficulty, Duration, puzzleService } from "../Services/PuzzleService";
 import { puzzleReportService } from "../Services/PuzzleReportService";
 import { puzzleCompleteDataService } from "../Services/PuzzleCompleteDataService";
 import { puzzleTranslationService } from "../Services/PuzzleTranslationService";
+import { AppError } from "../Errors/AppError";
 
-type PuzzleSubmit = Pick<
-  Puzzle,
-  "shortKey" | "title" | "data" | "description" | "minimumComponents" | "minimumNands" | "maximumComponents"
->;
+type PuzzleSubmit = Pick<Puzzle, "shortKey" | "title" | "data" | "description" | "minimumComponents" | "minimumNands" | "maximumComponents">;
 
 type PuzzleSearch = {
   searchTerm: string;
@@ -28,7 +22,7 @@ class PuzzlesController {
     const category = request.params.category as Category;
     const userId = response.locals.user.id as string;
     const locale = response.locals.locale as string;
-    
+
     const metadata = await puzzleService.listByCategory(category, userId, locale);
 
     return response.json(removeDescription(metadata));
@@ -51,32 +45,26 @@ class PuzzlesController {
     const reason = request.body.reason;
 
     if (!reason) {
-      return response.status(400).send("Missing reason");
+      throw new AppError("Missing reason", 400);
     }
 
     const userId = response.locals.user.id;
+
+    if (await puzzleReportService.userHasReportedPuzzle(+puzzleId, userId)) {
+      throw new AppError("You have already reported this puzzle!", 409);
+    }
+
     const report = await puzzleReportService.reportPuzzle(+puzzleId, userId, reason);
     return response.status(201).json(report);
   }
 
   async submit(request: Request, response: Response) {
-    const { shortKey, title, data, description, minimumComponents, minimumNands, maximumComponents } =
-      request.body as PuzzleSubmit;
+    const { shortKey, title, data, description, minimumComponents, minimumNands, maximumComponents } = request.body as PuzzleSubmit;
 
     const user = response.locals.user as User;
     const locale = response.locals.locale as string;
 
-    const puzzle = await puzzleService.create(
-      shortKey,
-      title,
-      data,
-      description,
-      minimumComponents,
-      minimumNands,
-      maximumComponents,
-      user,
-      locale
-    );
+    const puzzle = await puzzleService.create(shortKey, title, data, description, minimumComponents, minimumNands, maximumComponents, user, locale);
 
     return response.status(201).json(puzzle);
   }
@@ -86,7 +74,7 @@ class PuzzlesController {
 
     const puzzle = await puzzleService.get(puzzleId);
     if (!puzzle) {
-      return response.status(404).send();
+      throw new AppError("Puzzle not found", 404);
     }
 
     const user = response.locals.user;
@@ -95,18 +83,10 @@ class PuzzlesController {
     const difficultyRating = getDifficultyByDifficultyLabel(request.body.difficultyRating);
 
     if (difficultyRating === -1) {
-      return response.status(400).send("Invalid difficulty rating!");
+      throw new AppError("nvalid difficulty rating!", 400);
     }
 
-    const { completeData, trophies } = await puzzleService.completePuzzle(
-      puzzle,
-      time,
-      liked,
-      componentsUsed,
-      nandsUsed,
-      difficultyRating,
-      user
-    );
+    const { completeData, trophies } = await puzzleService.completePuzzle(puzzle, time, liked, componentsUsed, nandsUsed, difficultyRating, user);
 
     return response.json({
       completeData,
@@ -119,7 +99,7 @@ class PuzzlesController {
 
     const puzzle = await puzzleService.get(puzzleId);
     if (!puzzle) {
-      return response.status(404).send();
+      throw new AppError("Puzzle not found", 404);
     }
 
     const userId = response.locals.user.id as string;
@@ -154,7 +134,7 @@ class PuzzlesController {
 
     const puzzle = await puzzleService.get(puzzleId);
     if (!puzzle) {
-      return response.status(404).send();
+      throw new AppError("Puzzle not found", 404);
     }
 
     const isOwener = await puzzleService.isUserOwner(puzzleId, userId);
@@ -198,10 +178,10 @@ class PuzzlesController {
 }
 
 function removeDescription(metadatas: PuzzleMetadata[]): MetadataWhitoutDescription[] {
-  return metadatas.map(metadata => {
+  return metadatas.map((metadata) => {
     const { description, ...rest } = metadata;
     return rest;
-  })
+  });
 }
 
 const puzzlesController = new PuzzlesController();
