@@ -1,6 +1,5 @@
-import { Puzzle, PuzzleCompleteData } from "@prisma/client";
+import { Prisma, Puzzle, PuzzleCompleteData } from "@prisma/client";
 import { client } from "../prisma/client";
-
 
 class PuzzleCompleteDataService {
   getByPuzzleAndUser(puzzleId: number, userId: string): Promise<PuzzleCompleteData | null> {
@@ -14,6 +13,18 @@ class PuzzleCompleteDataService {
     });
   }
 
+  update(puzzleId: number, userId: string, data: Prisma.PuzzleCompleteDataUpdateInput): Promise<PuzzleCompleteData> {
+    return client.puzzleCompleteData.update({
+      where: {
+        userId_puzzleId: {
+          puzzleId,
+          userId,
+        },
+      },
+      data,
+    });
+  }
+
   async create(puzzle: Puzzle, userId: string): Promise<PuzzleCompleteData> {
     const puzzleId = puzzle.id;
 
@@ -21,17 +32,6 @@ class PuzzleCompleteDataService {
       data: {
         userId,
         puzzleId,
-      },
-    });
-
-    puzzle.downloads++;
-
-    await client.puzzle.update({
-      where: {
-        id: puzzleId,
-      },
-      data: {
-        downloads: puzzle.downloads,
       },
     });
 

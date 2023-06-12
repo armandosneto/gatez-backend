@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { AppError } from "../Errors/AppError";
 import { verify } from "jsonwebtoken";
 import { userService } from "../Services/UserService";
+import { userBanService } from "../Services/UserBanService";
 
 export async function ensureAuthenticated(request: Request, response: Response, next: NextFunction): Promise<void> {
   const authToken = request.headers.authorization;
@@ -24,10 +25,15 @@ export async function ensureAuthenticated(request: Request, response: Response, 
       throw new Error();
     }
 
+    await userBanService.checkIfBanned(user.id);
+
     response.locals.user = user;
 
     return next();
   } catch (err) {
+    if (err instanceof AppError) {
+      throw err;
+    }
     throw new AppError("Invalid JWT token!", 401);
   }
 }

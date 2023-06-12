@@ -1,29 +1,53 @@
 import { PuzzleReport } from "@prisma/client";
 import { client } from "../prisma/client";
+import { puzzleService } from "./PuzzleService";
+
+const reports_to_hide = +(process.env.REPORTS_TO_HIDE ?? 10);
 
 class PuzzleReportService {
-  reportPuzzle(puzzleId: number, userId: string, reason: string): Promise<PuzzleReport> {
-    return client.puzzleReport.create({
+  async reportPuzzle(puzzleId: number, userId: string, reason: string): Promise<PuzzleReport> {
+    const puzzleReport = await client.puzzleReport.create({
       data: {
         puzzleId,
         userId,
         reason,
       },
     });
+
+    const numberOfReports = await this._validOrSuspectedReports(puzzleId);
+
+    if (numberOfReports >= reports_to_hide) {
+      await puzzleService.hidePuzzle(puzzleId);
+    }
+
+    return puzzleReport;
   }
 
   async userHasReportedPuzzle(puzzleId: number, userId: string): Promise<boolean> {
-    const id = await client.puzzleReport.findFirst({
-      select: {
-        id: true,
-      },
+    const count = await client.puzzleReport.count({
       where: {
         puzzleId,
         userId,
       },
     });
 
-    return id !== null;
+    return count > 0;
+  }
+
+  private _validOrSuspectedReports(puzzleId: number): Promise<number> {
+    return client.puzzleReport.count({
+      where: {
+        puzzleId,
+        OR: [
+          {
+            legit: true,
+          },
+          {
+            reviewed: false,
+          },
+        ],
+      },
+    });
   }
 }
 

@@ -14,10 +14,9 @@ app.use(cors());
 app.use(populateLocale);
 app.use(router);
 
-app.use((err: Error, request: Request, response: Response, _next: NextFunction) => {
+app.use((err: Error, _: Request, response: Response, _next: NextFunction) => {
   let status = 500;
   const errorObject = {
-    status: "Error",
     message: `Internal server error: ${err.message}`,
   };
 
@@ -26,6 +25,7 @@ app.use((err: Error, request: Request, response: Response, _next: NextFunction) 
     errorObject.message = err.message;
   }
 
+  console.error(errorObject, err);
   return response.status(status).json(errorObject);
 });
 

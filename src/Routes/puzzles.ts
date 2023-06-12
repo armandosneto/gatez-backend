@@ -13,12 +13,14 @@ router.post("/submit", puzzlesController.submit);
 router.post("/complete/:puzzleId", puzzlesController.complete);
 router.post("/report/:puzzleId", puzzlesController.report);
 router.post("/search", puzzlesController.search);
-router.post("/translate/:puzzleId",
-    body("title").exists(),
-    body("description").exists(),
-    body("locale").exists(),
-    checkForErrors,
-    puzzlesController.suggestTranslation);
+router.post(
+  "/translate/:puzzleId",
+  body("title").isString(),
+  body("description").isString(),
+  body("locale").isString(),
+  checkForErrors,
+  puzzlesController.suggestTranslation
+);
 
 router.delete("/delete/:puzzleId", puzzlesController.delete);
 

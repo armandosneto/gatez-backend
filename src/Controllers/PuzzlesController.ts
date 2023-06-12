@@ -8,7 +8,10 @@ import { puzzleCompleteDataService } from "../Services/PuzzleCompleteDataService
 import { puzzleTranslationService } from "../Services/PuzzleTranslationService";
 import { AppError } from "../Errors/AppError";
 
-type PuzzleSubmit = Pick<Puzzle, "shortKey" | "title" | "data" | "description" | "minimumComponents" | "minimumNands" | "maximumComponents">;
+type PuzzleSubmit = Pick<
+  Puzzle,
+  "shortKey" | "title" | "data" | "description" | "minimumComponents" | "minimumNands" | "maximumComponents"
+>;
 
 type PuzzleSearch = {
   searchTerm: string;
@@ -33,7 +36,14 @@ class PuzzlesController {
     const userId = response.locals.user.id as string;
     const locale = response.locals.locale as string;
 
-    let metadata = await puzzleService.searchPuzzles(searchTerm, duration, difficulty, includeCompleted, userId, locale);
+    let metadata = await puzzleService.searchPuzzles(
+      searchTerm,
+      duration,
+      difficulty,
+      includeCompleted,
+      userId,
+      locale
+    );
 
     return response.json(removeDescription(metadata));
   }
@@ -59,12 +69,23 @@ class PuzzlesController {
   }
 
   async submit(request: Request, response: Response) {
-    const { shortKey, title, data, description, minimumComponents, minimumNands, maximumComponents } = request.body as PuzzleSubmit;
+    const { shortKey, title, data, description, minimumComponents, minimumNands, maximumComponents } =
+      request.body as PuzzleSubmit;
 
     const user = response.locals.user as User;
     const locale = response.locals.locale as string;
 
-    const puzzle = await puzzleService.create(shortKey, title, data, description, minimumComponents, minimumNands, maximumComponents, user, locale);
+    const puzzle = await puzzleService.create(
+      shortKey,
+      title,
+      data,
+      description,
+      minimumComponents,
+      minimumNands,
+      maximumComponents,
+      user,
+      locale
+    );
 
     return response.status(201).json(puzzle);
   }
@@ -86,7 +107,15 @@ class PuzzlesController {
       throw new AppError("nvalid difficulty rating!", 400);
     }
 
-    const { completeData, trophies } = await puzzleService.completePuzzle(puzzle, time, liked, componentsUsed, nandsUsed, difficultyRating, user);
+    const { completeData, trophies } = await puzzleService.completePuzzle(
+      puzzle,
+      time,
+      liked,
+      componentsUsed,
+      nandsUsed,
+      difficultyRating,
+      user
+    );
 
     return response.json({
       completeData,
@@ -109,6 +138,10 @@ class PuzzlesController {
     if (!completeData) {
       completeData = await puzzleCompleteDataService.create(puzzle, userId);
     }
+
+    puzzle.downloads++;
+
+    await puzzleService.update(puzzle.id, { downloads: puzzle.downloads });
 
     return response.json(await puzzleService.buildPlayPuzzleObject(puzzle, completeData!, locale));
   }

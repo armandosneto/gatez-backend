@@ -10,16 +10,10 @@ import {
 import { puzzleCompleteDataService } from "./PuzzleCompleteDataService";
 import { difficultyLabels } from "../utils/difficultyUtil";
 import { puzzleTranslationService } from "./PuzzleTranslationService";
+import { userService } from "./UserService";
 
-type Category =
-  | "official"
-  | "top-rated"
-  | "new"
-  | "easy"
-  | "medium"
-  | "hard"
-  | "mine"
-  | "completed";
+// Keep in sync with frontend
+type Category = "official" | "top-rated" | "new" | "easy" | "medium" | "hard" | "mine" | "completed";
 
 type Duration = "short" | "medium" | "long" | "any";
 
@@ -27,9 +21,10 @@ type Difficulty = "easy" | "medium" | "hard" | "any";
 
 class PuzzleService {
   get(puzzleId: number): Promise<Puzzle | null> {
-    return client.puzzle.findUnique({
+    return client.puzzle.findFirst({
       where: {
         id: puzzleId,
+        hidden: false,
       },
     });
   }
@@ -43,17 +38,23 @@ class PuzzleService {
   }
 
   async isUserOwner(puzzleId: number, userId: string): Promise<boolean> {
-    const id = await client.puzzle.findFirst({
-      select: {
-        id: true,
-      },
+    const count = await client.puzzle.count({
       where: {
         id: puzzleId,
         author: userId,
       },
     });
 
-    return !!id;
+    return count > 0;
+  }
+
+  update(puzzleId: number, data: Prisma.PuzzleUpdateInput): Promise<Puzzle> {
+    return client.puzzle.update({
+      where: {
+        id: puzzleId,
+      },
+      data,
+    });
   }
 
   delete(puzzleId: number): Promise<Puzzle> {
@@ -230,26 +231,15 @@ class PuzzleService {
   ): Promise<{ completeData: PuzzleCompleteData; trophies: number | undefined }> {
     const puzzleId = puzzle.id;
 
-    const previousCompleteData = (await puzzleCompleteDataService.getByPuzzleAndUser(
-      puzzleId,
-      user.id
-    ))!;
+    const previousCompleteData = (await puzzleCompleteDataService.getByPuzzleAndUser(puzzleId, user.id))!;
 
-    await client.puzzleCompleteData.update({
-      where: {
-        userId_puzzleId: {
-          puzzleId,
-          userId: user.id,
-        },
-      },
-      data: {
-        timeTaken: time,
-        liked,
-        componentsUsed,
-        nandsUsed,
-        difficultyRating,
-        completed: true,
-      },
+    await puzzleCompleteDataService.update(puzzleId, user.id, {
+      timeTaken: time,
+      liked,
+      componentsUsed,
+      nandsUsed,
+      difficultyRating,
+      completed: true,
     });
 
     let likes = puzzle.likes;
@@ -284,17 +274,12 @@ class PuzzleService {
 
     const newDifficulty = calculateDifficulty(averageTime!, averageDifficultyRating);
 
-    await client.puzzle.update({
-      where: {
-        id: puzzleId,
-      },
-      data: {
-        likes,
-        completions,
-        averageTime,
-        averageDifficultyRating,
-        difficulty: newDifficulty,
-      },
+    await this.update(puzzleId, {
+      likes,
+      completions,
+      averageTime,
+      averageDifficultyRating,
+      difficulty: newDifficulty,
     });
 
     let newTrophiesValue = undefined;
@@ -302,14 +287,7 @@ class PuzzleService {
     if (!previousCompleteData.completed) {
       newTrophiesValue = user.trophies + getTrophies(newDifficulty);
 
-      await client.user.update({
-        where: {
-          id: user.id,
-        },
-        data: {
-          trophies: newTrophiesValue,
-        },
-      });
+      await userService.updateTrophies(user.id, newTrophiesValue);
     }
 
     const completeData = (await puzzleCompleteDataService.getByPuzzleAndUser(puzzleId, user.id))!;
@@ -342,7 +320,6 @@ class PuzzleService {
     }
 
     if (locale !== puzzle.locale) {
-
       const translation = await puzzleTranslationService.findApprovedTranslation(puzzle.id, locale);
       if (translation) {
         metaData.title = translation.title;
@@ -361,6 +338,14 @@ class PuzzleService {
         canPlay,
       },
     };
+  }
+
+  async hidePuzzle(puzzleId: number): Promise<void> {
+    await this.update(puzzleId, { hidden: true });
+  }
+
+  async unhidePuzzle(puzzleId: number): Promise<void> {
+    await this.update(puzzleId, { hidden: false });
   }
 
   private async _onlyMetadata(
@@ -411,11 +396,7 @@ class PuzzleService {
     });
   }
 
-  private _calculateNewAverage(
-    oldAverage: number | null,
-    oldTotal: number,
-    newValue: number | null
-  ): number | null {
+  private _calculateNewAverage(oldAverage: number | null, oldTotal: number, newValue: number | null): number | null {
     if (oldAverage === null) {
       return newValue;
     }

@@ -23,20 +23,25 @@ model User {
   translations     PuzzleTranslation[]
   bans             UserBan[]            @relation(name: "bans")
   bansExpedited    UserBan[]            @relation(name: "bansExpedited")
+  bansLifted       UserBan[]            @relation(name: "bansLifted")
 
   @@map("users")
 }
 
 model UserBan {
-  id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(name: "bans", fields: [userId], references: [id], onDelete: Cascade)
-  reason       String
-  moderatorId  String
-  moderator    User     @relation(name: "bansExpedited", fields: [moderatorId], references: [id], onDelete: Cascade)
-  lifted       Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  durationDays Int
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(name: "bans", fields: [userId], references: [id], onDelete: Cascade)
+  reason          String
+  moderatorId     String?
+  moderator       User?     @relation(name: "bansExpedited", fields: [moderatorId], references: [id], onDelete: SetNull)
+  lifted          Boolean   @default(false)
+  reasonLifted    String?
+  moderatorLiftId String?
+  moderatorLift   User?     @relation(name: "bansLifted", fields: [moderatorId], references: [id], onDelete: SetNull)
+  liftedAt        DateTime?
+  createdAt       DateTime  @default(now())
+  durationDays    Int
 
   @@map("user_bans")
 }

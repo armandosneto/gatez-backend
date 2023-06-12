@@ -6,14 +6,8 @@ import { checkForErrors } from "../middlewares/checkForErrors";
 
 const router = Router();
 
-router.post("/",
-    body("name").exists(),
-    body("password").exists(),
-    checkForErrors,
-    authenticateController.login);
+router.post("/", body("name").exists(), body("password").exists(), checkForErrors, authenticateController.login);
 
-router.get("/",
-    ensureAuthenticated,
-    authenticateController.validateToken);
+router.get("/", ensureAuthenticated, authenticateController.validateToken);
 
 export default router;
