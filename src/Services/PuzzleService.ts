@@ -1,5 +1,5 @@
 import { Prisma, Puzzle, PuzzleCompleteData, User } from "@prisma/client";
-import { PuzzleFullData, PuzzleMetadata } from "../Models/PuzzleModels";
+import { PuzzleFullData, PuzzleMetadata, PuzzleSimpleData } from "../Models/PuzzleModels";
 import { client } from "../prisma/client";
 import {
   calculateDifficulty,
@@ -340,12 +340,23 @@ class PuzzleService {
     };
   }
 
-  async hidePuzzle(puzzleId: number): Promise<void> {
-    await this.update(puzzleId, { hidden: true });
+  async hidePuzzle(puzzleId: number): Promise<PuzzleSimpleData> {
+    const puzzle = await this.update(puzzleId, { hidden: true });
+    return this._puzzleSimpleInfo(puzzle);
   }
 
-  async unhidePuzzle(puzzleId: number): Promise<void> {
-    await this.update(puzzleId, { hidden: false });
+  async unhidePuzzle(puzzleId: number): Promise<PuzzleSimpleData> {
+    const puzzle = await this.update(puzzleId, { hidden: false });
+    return this._puzzleSimpleInfo(puzzle);
+  }
+
+  private _puzzleSimpleInfo(puzzle: Puzzle): PuzzleSimpleData {
+    return {
+      id: puzzle.id,
+      title: puzzle.title,
+      authorName: puzzle.authorName,
+      hidden: puzzle.hidden,
+    };
   }
 
   private async _onlyMetadata(

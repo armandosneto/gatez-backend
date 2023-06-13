@@ -3,7 +3,7 @@ export type PaginationRequest = {
     pageNumber: number;
 }
 
-export type PaginationResponse = {
+export type PaginationResponse = PaginationRequest & {
     total: number;
     totalPages: number;
 }

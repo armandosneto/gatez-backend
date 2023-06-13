@@ -37,9 +37,16 @@ router.put(
 router.get("/ban/:userId", ensureHasRole(UserRole.admin), moderationController.listUserBans);
 router.get("/ban", ensureHasRole(UserRole.admin), moderationController.listAllBans);
 
-router.put("/userRole/:userId", ensureHasRole(UserRole.admin), moderationController.changeUserRole);
+router.put(
+  "/userRole/:userId",
+  ensureHasRole(UserRole.admin),
+  body("newRole").isNumeric(),
+  checkForErrors,
+  moderationController.changeUserRole
+);
 
+router.get("/hidePuzzle", ensureHasRole(UserRole.admin), moderationController.listHidenPuzzles);
 router.put("/hidePuzzle/:puzzleId", ensureHasRole(UserRole.admin), moderationController.hidePuzzle);
-router.put("/unhidePuzzle/:puzzleId", ensureHasRole(UserRole.admin), moderationController.unhidePuzzle);
+router.put("/hidePuzzle/undo/:puzzleId", ensureHasRole(UserRole.admin), moderationController.unhidePuzzle);
 
 export default router;

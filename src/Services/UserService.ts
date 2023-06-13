@@ -2,6 +2,7 @@ import { Prisma, User, UserBan } from "@prisma/client";
 import { client } from "../prisma/client";
 import { userBanService } from "./UserBanService";
 import { AppError } from "../Errors/AppError";
+import { UserRole } from "../Models/UserRole";
 
 class UserService {
   get(id: string): Promise<User | null> {
@@ -73,6 +74,15 @@ class UserService {
     }
 
     return userBanService.unbanUser(userBanId, reason, moderator);
+  }
+
+  async changeRole(userId: string, newRole: UserRole): Promise<User> {
+    const user = this.get(userId);
+    if (!user) {
+      throw new AppError("User not found!", 404);
+    }
+
+    return await this.update(userId, { userRole: newRole });
   }
 }
 

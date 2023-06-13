@@ -15,3 +15,5 @@ export type PuzzleFullData = {
     difficultyRating: string | null;
   };
 };
+
+export type PuzzleSimpleData = Pick<Puzzle, "id" | "title" | "authorName" | "hidden">;

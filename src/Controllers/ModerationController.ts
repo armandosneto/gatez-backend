@@ -1,6 +1,10 @@
 import { Request, Response } from "express";
 import { userService } from "../Services/UserService";
+import { puzzleService } from "../Services/PuzzleService";
 import { userBanService } from "../Services/UserBanService";
+import { removeSensitiveData } from "../utils/userUtil";
+import { UserRole } from "../Models/UserRole";
+import { AppError } from "../Errors/AppError";
 
 class ModerationController {
   async listTranslations(request: Request, response: Response) {
@@ -20,7 +24,7 @@ class ModerationController {
   }
 
   async banUser(request: Request, response: Response) {
-    const userId = request.params.userId as string;
+    const userId = request.params.userId;
     const moderatorId = response.locals.user.id as string;
 
     const { reason, duration } = request.body as {
@@ -32,8 +36,8 @@ class ModerationController {
   }
 
   async unbanUser(request: Request, response: Response) {
+    const userBanId = request.params.userBanId;
     const moderatorId = response.locals.user.id as string;
-    const userBanId = request.params.userBanId as string;
 
     const { reason } = request.body as {
       reason: string;
@@ -43,7 +47,8 @@ class ModerationController {
   }
 
   async listUserBans(request: Request, response: Response) {
-    const userId = request.params.userId as string;
+    const userId = request.params.userId;
+
     return response.json(await userBanService.getAllForUser(userId));
   }
 
@@ -52,15 +57,33 @@ class ModerationController {
   }
 
   async changeUserRole(request: Request, response: Response) {
-    return response.json({ route: "changeUserRole" });
+    const userId = request.params.userId;
+
+    const { newRole } = request.body as {
+      newRole: UserRole;
+    };
+
+    if (newRole < UserRole.user || newRole > UserRole.admin) {
+      throw new AppError("Invalid user role!", 400);
+    }
+
+    return response.json(removeSensitiveData(await userService.changeRole(userId, newRole)));
+  }
+
+  async listHidenPuzzles(request: Request, response: Response) {
+    return response.json({ route: "listHidenPuzzles" });
   }
 
   async hidePuzzle(request: Request, response: Response) {
-    return response.json({ route: "hidePuzzle" });
+    const puzzleId = +request.params.puzzleId;
+
+    return response.json(await puzzleService.hidePuzzle(puzzleId));
   }
 
   async unhidePuzzle(request: Request, response: Response) {
-    return response.json({ route: "hidePuzzle" });
+    const puzzleId = +request.params.puzzleId;
+
+    return response.json(await puzzleService.unhidePuzzle(puzzleId));
   }
 }
 
