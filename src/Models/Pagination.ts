@@ -28,7 +28,6 @@ export async function queryPaginationResult<T, R>(
   queryFuntion: (params: R & { take: number; skip: number }) => Promise<T[]>,
   params: R
 ): Promise<PaginationResponse<T>> {
-  console.log(request, params);
   return createPaginationResult(
     request,
     await queryFuntion({
