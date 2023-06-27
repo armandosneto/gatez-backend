@@ -1,7 +1,8 @@
 import { User, UserBan } from "@prisma/client";
 import { client } from "../prisma/client";
 import { AppError } from "../Errors/AppError";
-import { daystoMs, msToDays } from "../utils/timeUtil";
+import { msToDays, addDays } from "../utils/timeUtil";
+import { PaginationRequest, PaginationResponse, queryPaginationResult } from "../Models/Pagination";
 
 class UserBanService {
   get(id: string): Promise<UserBan | null> {
@@ -42,38 +43,39 @@ class UserBanService {
   }
 
   timeToExpire(userBan: UserBan): number {
-    return userBan.createdAt.getTime() + daystoMs(userBan.durationDays) - new Date().getTime();
+    return userBan.expiresAt.getTime() - new Date().getTime();
   }
 
   isExpired(userBan: UserBan): boolean {
     return this.timeToExpire(userBan) < 0;
   }
 
-  getAllForUser(userId: string): Promise<UserBan[]> {
-    return client.userBan.findMany({
+  getAllForUser(userId: string, pagination: PaginationRequest): Promise<PaginationResponse<UserBan>> {
+    return queryPaginationResult(pagination, client.userBan.count, client.userBan.findMany, {
       where: {
         userId: userId,
       },
     });
   }
 
-  async getAllActive(): Promise<UserBan[]> {
-    const bans = await client.userBan.findMany({
+  getAllActive(pagination: PaginationRequest): Promise<PaginationResponse<UserBan>> {
+    return queryPaginationResult(pagination, client.userBan.count, client.userBan.findMany, {
       where: {
         lifted: false,
+        expiresAt: {
+          gt: new Date(),
+        },
       },
     });
-
-    return bans.filter((ban) => !this.isExpired(ban));
   }
 
-  async banUser(user: User, reason: string, moderator: User, duration: number): Promise<UserBan> {
+  async banUser(user: User, reason: string, moderator: User, durationDays: number): Promise<UserBan> {
     if (reason.trim().length === 0) {
       throw new AppError("Reason must not be empty!", 400);
     }
 
-    if (duration <= 0) {
-      throw new AppError("Duration must be positive!", 400);
+    if (durationDays <= 0) {
+      throw new AppError("Duration in days must be greater than 0!", 400);
     }
 
     if (!!(await this.getActiveForUser(user.id))) {
@@ -88,7 +90,7 @@ class UserBanService {
         userId: user.id,
         reason,
         moderatorId: moderator.id,
-        durationDays: duration,
+        expiresAt: addDays(new Date(), durationDays),
       },
     });
   }

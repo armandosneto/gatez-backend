@@ -41,7 +41,7 @@ model UserBan {
   moderatorLift   User?     @relation(name: "bansLifted", fields: [moderatorId], references: [id], onDelete: SetNull)
   liftedAt        DateTime?
   createdAt       DateTime  @default(now())
-  durationDays    Int
+  expiresAt       DateTime
 
   @@map("user_bans")
 }

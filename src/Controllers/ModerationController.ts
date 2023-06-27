@@ -5,6 +5,7 @@ import { userBanService } from "../Services/UserBanService";
 import { removeSensitiveData } from "../utils/userUtil";
 import { UserRole } from "../Models/UserRole";
 import { AppError } from "../Errors/AppError";
+import { PaginationRequest } from "../Models/Pagination";
 
 class ModerationController {
   async listTranslations(request: Request, response: Response) {
@@ -48,12 +49,15 @@ class ModerationController {
 
   async listUserBans(request: Request, response: Response) {
     const userId = request.params.userId;
+    const pagination = response.locals.pagination as PaginationRequest;
 
-    return response.json(await userBanService.getAllForUser(userId));
+    return response.json(await userBanService.getAllForUser(userId, pagination));
   }
 
   async listAllBans(_: Request, response: Response) {
-    return response.json(await userBanService.getAllActive());
+    const pagination = response.locals.pagination as PaginationRequest;
+
+    return response.json(await userBanService.getAllActive(pagination));
   }
 
   async changeUserRole(request: Request, response: Response) {
@@ -70,8 +74,10 @@ class ModerationController {
     return response.json(removeSensitiveData(await userService.changeRole(userId, newRole)));
   }
 
-  async listHidenPuzzles(request: Request, response: Response) {
-    return response.json({ route: "listHidenPuzzles" });
+  async listHidenPuzzles(_: Request, response: Response) {
+    const pagination = response.locals.pagination as PaginationRequest;
+
+    return response.json(await puzzleService.listAllHidden(pagination));
   }
 
   async hidePuzzle(request: Request, response: Response) {

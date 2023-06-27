@@ -11,6 +11,7 @@ import { puzzleCompleteDataService } from "./PuzzleCompleteDataService";
 import { difficultyLabels } from "../utils/difficultyUtil";
 import { puzzleTranslationService } from "./PuzzleTranslationService";
 import { userService } from "./UserService";
+import { PaginationRequest, PaginationResponse, queryPaginationResultTransform } from "../Models/Pagination";
 
 // Keep in sync with frontend
 type Category = "official" | "top-rated" | "new" | "easy" | "medium" | "hard" | "mine" | "completed";
@@ -348,6 +349,20 @@ class PuzzleService {
   async unhidePuzzle(puzzleId: number): Promise<PuzzleSimpleData> {
     const puzzle = await this.update(puzzleId, { hidden: false });
     return this._puzzleSimpleInfo(puzzle);
+  }
+
+  async listAllHidden(pagination: PaginationRequest): Promise<PaginationResponse<PuzzleSimpleData>> {
+    return await queryPaginationResultTransform(
+      pagination,
+      client.puzzle.count,
+      client.puzzle.findMany,
+      {
+        where: {
+          hidden: true,
+        },
+      },
+      this._puzzleSimpleInfo
+    );
   }
 
   private _puzzleSimpleInfo(puzzle: Puzzle): PuzzleSimpleData {
