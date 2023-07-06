@@ -94,15 +94,17 @@ model PuzzleCompleteData {
 }
 
 model PuzzleReport {
-  id        String   @id @default(uuid())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  puzzle    Puzzle   @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
-  puzzleId  Int
-  reason    String
-  legit     Boolean  @default(false)
-  reviewed  Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id          String    @id @default(uuid())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  puzzle      Puzzle    @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+  puzzleId    Int
+  reason      String
+  legit       Boolean   @default(false)
+  reviewed    Boolean   @default(false)
+  reviewedAt  DateTime?
+  reviewNotes String?
+  createdAt   DateTime  @default(now())
 
   @@map("puzzle_reports")
 }
