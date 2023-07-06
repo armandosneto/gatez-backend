@@ -6,6 +6,7 @@ import { removeSensitiveData } from "../utils/userUtil";
 import { UserRole } from "../Models/UserRole";
 import { AppError } from "../Errors/AppError";
 import { PaginationRequest } from "../Models/Pagination";
+import { puzzleReportService } from "../Services/PuzzleReportService";
 
 class ModerationController {
   async listTranslations(request: Request, response: Response) {
@@ -16,8 +17,10 @@ class ModerationController {
     return response.json({ route: "respondToTranslation" });
   }
 
-  async listReports(request: Request, response: Response) {
-    return response.json({ route: "listReports" });
+  async listReports(_: Request, response: Response) {
+    const pagination = response.locals.pagination as PaginationRequest;
+
+    return response.json(await puzzleReportService.listReports(pagination));
   }
 
   async respondToReport(request: Request, response: Response) {
