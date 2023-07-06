@@ -12,6 +12,8 @@ router.get("/translations", ensureHasRole(UserRole.moderator), paginated, modera
 router.put(
   "/translations/:translationId",
   ensureHasRole(UserRole.moderator),
+  body("approved").isBoolean(),
+  checkForErrors,
   moderationController.respondToTranslation
 );
 
@@ -46,7 +48,7 @@ router.put(
   moderationController.changeUserRole
 );
 
-router.get("/hidePuzzle", ensureHasRole(UserRole.admin), paginated, moderationController.listHidenPuzzles);
+router.get("/hidePuzzle", ensureHasRole(UserRole.admin), paginated, moderationController.listHiddenPuzzles);
 router.put("/hidePuzzle/:puzzleId", ensureHasRole(UserRole.admin), moderationController.hidePuzzle);
 router.put("/hidePuzzle/undo/:puzzleId", ensureHasRole(UserRole.admin), moderationController.unhidePuzzle);
 

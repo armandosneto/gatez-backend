@@ -16,4 +16,7 @@ export type PuzzleFullData = {
   };
 };
 
-export type PuzzleSimpleData = Pick<Puzzle, "id" | "title" | "authorName" | "hidden">;
+export type PuzzleSimpleData = Pick<
+  Puzzle,
+  "id" | "title" | "authorName" | "hidden" | "completions" | "likes" | "downloads" | "createdAt"
+>;

@@ -11,7 +11,7 @@ import { puzzleCompleteDataService } from "./PuzzleCompleteDataService";
 import { difficultyLabels } from "../utils/difficultyUtil";
 import { puzzleTranslationService } from "./PuzzleTranslationService";
 import { userService } from "./UserService";
-import { PaginationRequest, PaginationResponse, queryPaginationResultTransform } from "../Models/Pagination";
+import { PaginationRequest, createPaginationResult } from "../Models/Pagination";
 
 // Keep in sync with frontend
 type Category = "official" | "top-rated" | "new" | "easy" | "medium" | "hard" | "mine" | "completed";
@@ -351,18 +351,41 @@ class PuzzleService {
     return this._puzzleSimpleInfo(puzzle);
   }
 
-  async listAllHidden(pagination: PaginationRequest): Promise<PaginationResponse<PuzzleSimpleData>> {
-    return await queryPaginationResultTransform(
-      pagination,
-      client.puzzle.count,
-      client.puzzle.findMany,
-      {
-        where: {
-          hidden: true,
+  // TODO add a explicit type
+  async listAllHidden(pagination: PaginationRequest) {
+    const where = {
+      hidden: true,
+    };
+
+    const count = await client.puzzle.count({
+      where,
+    });
+
+    const hidden = await client.puzzle.findMany({
+      where,
+      select: {
+        id: true,
+        title: true,
+        authorName: true,
+        hidden: true,
+        completions: true,
+        likes: true,
+        downloads: true,
+        createdAt: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            userRole: true,
+          },
         },
+        puzzleReports: true,
       },
-      this._puzzleSimpleInfo
-    );
+      take: pagination.pageSize,
+      skip: pagination.page * pagination.pageSize,
+    });
+
+    return createPaginationResult(pagination, hidden, count);
   }
 
   private _puzzleSimpleInfo(puzzle: Puzzle): PuzzleSimpleData {
@@ -371,6 +394,10 @@ class PuzzleService {
       title: puzzle.title,
       authorName: puzzle.authorName,
       hidden: puzzle.hidden,
+      completions: puzzle.completions,
+      likes: puzzle.likes,
+      downloads: puzzle.downloads,
+      createdAt: puzzle.createdAt,
     };
   }
 

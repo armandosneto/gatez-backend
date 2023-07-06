@@ -7,14 +7,23 @@ import { UserRole } from "../Models/UserRole";
 import { AppError } from "../Errors/AppError";
 import { PaginationRequest } from "../Models/Pagination";
 import { puzzleReportService } from "../Services/PuzzleReportService";
+import { puzzleTranslationService } from "../Services/PuzzleTranslationService";
 
 class ModerationController {
-  async listTranslations(request: Request, response: Response) {
-    return response.json({ route: "listTranslations" });
+  async listTranslations(_: Request, response: Response) {
+    const pagination = response.locals.pagination as PaginationRequest;
+
+    return response.json(await puzzleTranslationService.listPendingTranslations(pagination));
   }
 
   async respondToTranslation(request: Request, response: Response) {
-    return response.json({ route: "respondToTranslation" });
+    const moderatorId = response.locals.user.id as string;
+    const { approved } = request.body as {
+      approved: true;
+    };
+    const translationId = request.params.translationId;
+
+    return response.json(await puzzleTranslationService.review(translationId, moderatorId, approved));
   }
 
   async listReports(_: Request, response: Response) {
@@ -77,7 +86,7 @@ class ModerationController {
     return response.json(removeSensitiveData(await userService.changeRole(userId, newRole)));
   }
 
-  async listHidenPuzzles(_: Request, response: Response) {
+  async listHiddenPuzzles(_: Request, response: Response) {
     const pagination = response.locals.pagination as PaginationRequest;
 
     return response.json(await puzzleService.listAllHidden(pagination));

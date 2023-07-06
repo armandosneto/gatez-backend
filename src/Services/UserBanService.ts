@@ -2,7 +2,7 @@ import { User, UserBan } from "@prisma/client";
 import { client } from "../prisma/client";
 import { AppError } from "../Errors/AppError";
 import { msToDays, addDays } from "../utils/timeUtil";
-import { PaginationRequest, PaginationResponse, queryPaginationResult } from "../Models/Pagination";
+import { PaginationRequest, createPaginationResult } from "../Models/Pagination";
 
 class UserBanService {
   get(id: string): Promise<UserBan | null> {
@@ -50,23 +50,84 @@ class UserBanService {
     return this.timeToExpire(userBan) < 0;
   }
 
-  getAllForUser(userId: string, pagination: PaginationRequest): Promise<PaginationResponse<UserBan>> {
-    return queryPaginationResult(pagination, client.userBan.count, client.userBan.findMany, {
-      where: {
-        userId: userId,
-      },
-    });
-  }
+  // TODO add a explicit type
+  async getAllForUser(userId: string, pagination: PaginationRequest) {
+    const where = {
+      userId: userId,
+    };
 
-  getAllActive(pagination: PaginationRequest): Promise<PaginationResponse<UserBan>> {
-    return queryPaginationResult(pagination, client.userBan.count, client.userBan.findMany, {
-      where: {
-        lifted: false,
-        expiresAt: {
-          gt: new Date(),
+    const bans = await client.userBan.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            userRole: true,
+          },
+        },
+        moderator: {
+          select: {
+            id: true,
+            name: true,
+            userRole: true,
+          },
+        },
+        moderatorLift: {
+          select: {
+            id: true,
+            name: true,
+            userRole: true,
+          },
         },
       },
+      take: pagination.pageSize,
+      skip: pagination.page * pagination.pageSize,
     });
+
+    const count = await client.userBan.count({
+      where,
+    });
+
+    return createPaginationResult(pagination, bans, count);
+  }
+
+  // TODO add a explicit type
+  async getAllActive(pagination: PaginationRequest) {
+    const where = {
+      lifted: false,
+      expiresAt: {
+        gt: new Date(),
+      },
+    };
+
+    const bans = await client.userBan.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            userRole: true,
+          },
+        },
+        moderator: {
+          select: {
+            id: true,
+            name: true,
+            userRole: true,
+          },
+        },
+      },
+      take: pagination.pageSize,
+      skip: pagination.page * pagination.pageSize,
+    });
+
+    const count = await client.userBan.count({
+      where,
+    });
+
+    return createPaginationResult(pagination, bans, count);
   }
 
   async banUser(user: User, reason: string, moderator: User, durationDays: number): Promise<UserBan> {
