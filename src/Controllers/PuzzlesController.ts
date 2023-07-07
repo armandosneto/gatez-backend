@@ -52,9 +52,9 @@ class PuzzlesController {
     const puzzleId = request.params.puzzleId;
 
     // verify if request.body has reason
-    const reason = request.body.reason;
+    const reason = request.body.reason as string;
 
-    if (!reason) {
+    if (!reason || reason.length === 0) {
       throw new AppError("Missing reason", 400);
     }
 

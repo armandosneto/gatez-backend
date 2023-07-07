@@ -2,7 +2,7 @@ import { User, UserBan } from "@prisma/client";
 import { client } from "../prisma/client";
 import { AppError } from "../Errors/AppError";
 import { msToDays, addDays } from "../utils/timeUtil";
-import { PaginationRequest, createPaginationResult } from "../Models/Pagination";
+import { PaginationRequest, queryPaginationResult } from "../Models/Pagination";
 
 class UserBanService {
   get(id: string): Promise<UserBan | null> {
@@ -51,13 +51,11 @@ class UserBanService {
   }
 
   // TODO add a explicit type
-  async getAllForUser(userId: string, pagination: PaginationRequest) {
-    const where = {
-      userId: userId,
-    };
-
-    const bans = await client.userBan.findMany({
-      where,
+  getAllForUser(userId: string, pagination: PaginationRequest) {
+    return queryPaginationResult(pagination, client.userBan.count, client.userBan.findMany, {
+      where: {
+        userId: userId,
+      },
       include: {
         user: {
           select: {
@@ -81,28 +79,18 @@ class UserBanService {
           },
         },
       },
-      take: pagination.pageSize,
-      skip: pagination.page * pagination.pageSize,
     });
-
-    const count = await client.userBan.count({
-      where,
-    });
-
-    return createPaginationResult(pagination, bans, count);
   }
 
   // TODO add a explicit type
-  async getAllActive(pagination: PaginationRequest) {
-    const where = {
-      lifted: false,
-      expiresAt: {
-        gt: new Date(),
+  getAllActive(pagination: PaginationRequest) {
+    return queryPaginationResult(pagination, client.userBan.count, client.userBan.findMany, {
+      where: {
+        lifted: false,
+        expiresAt: {
+          gt: new Date(),
+        },
       },
-    };
-
-    const bans = await client.userBan.findMany({
-      where,
       include: {
         user: {
           select: {
@@ -119,15 +107,7 @@ class UserBanService {
           },
         },
       },
-      take: pagination.pageSize,
-      skip: pagination.page * pagination.pageSize,
     });
-
-    const count = await client.userBan.count({
-      where,
-    });
-
-    return createPaginationResult(pagination, bans, count);
   }
 
   async banUser(user: User, reason: string, moderator: User, durationDays: number): Promise<UserBan> {

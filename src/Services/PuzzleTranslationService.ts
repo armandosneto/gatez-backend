@@ -1,7 +1,7 @@
 import { Puzzle, PuzzleTranslation } from "@prisma/client";
 import { AppError } from "../Errors/AppError";
 import { client } from "../prisma/client";
-import { PaginationRequest, createPaginationResult } from "../Models/Pagination";
+import { PaginationRequest, queryPaginationResult } from "../Models/Pagination";
 
 const defaultLocale = "en";
 // Keep in sync with the frontend
@@ -155,14 +155,12 @@ class PuzzleTranslationService {
   }
 
   // TODO add a explicit type
-  async listPendingTranslations(pagination: PaginationRequest) {
-    const where = {
-      approved: false,
-      reviewedAt: null,
-    };
-
-    const translations = await client.puzzleTranslation.findMany({
-      where,
+  listPendingTranslations(pagination: PaginationRequest) {
+    return queryPaginationResult(pagination, client.puzzleTranslation.count, client.puzzleTranslation.findMany, {
+      where: {
+        approved: false,
+        reviewedAt: null,
+      },
       include: {
         puzzle: {
           select: {
@@ -185,14 +183,7 @@ class PuzzleTranslationService {
           },
         },
       },
-      take: pagination.pageSize,
-      skip: pagination.page * pagination.pageSize,
     });
-
-    const count = await client.puzzleTranslation.count({
-      where,
-    });
-    return createPaginationResult(pagination, translations, count);
   }
 }
 

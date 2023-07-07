@@ -1,7 +1,7 @@
 import { PuzzleReport } from "@prisma/client";
 import { client } from "../prisma/client";
 import { puzzleService } from "./PuzzleService";
-import { PaginationRequest, createPaginationResult } from "../Models/Pagination";
+import { PaginationRequest, queryPaginationResult } from "../Models/Pagination";
 
 const reports_to_hide = +(process.env.REPORTS_TO_HIDE ?? 10);
 
@@ -37,16 +37,10 @@ class PuzzleReportService {
 
   // TODO add a explicit type
   async listReports(pagination: PaginationRequest) {
-    const where = {
-      reviewed: false,
-    };
-
-    const count = await client.puzzleReport.count({
-      where,
-    });
-
-    const reports = await client.puzzleReport.findMany({
-      where,
+    return queryPaginationResult(pagination, client.puzzleReport.count, client.puzzleReport.findMany, {
+      where: {
+        reviewed: false,
+      },
       include: {
         user: {
           select: {
@@ -75,11 +69,7 @@ class PuzzleReportService {
           },
         },
       },
-      take: pagination.pageSize,
-      skip: pagination.page * pagination.pageSize,
     });
-
-    return createPaginationResult(pagination, reports, count);
   }
 
   private _validOrSuspectedReports(puzzleId: number): Promise<number> {
