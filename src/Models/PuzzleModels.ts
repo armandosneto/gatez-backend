@@ -18,5 +18,5 @@ export type PuzzleFullData = {
 
 export type PuzzleSimpleData = Pick<
   Puzzle,
-  "id" | "title" | "authorName" | "hidden" | "completions" | "likes" | "downloads" | "createdAt"
+  "id" | "title" | "authorName" | "hiddenAt" | "completions" | "likes" | "downloads" | "createdAt"
 >;

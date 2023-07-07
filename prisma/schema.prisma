@@ -17,7 +17,7 @@ model User {
   trophies            Int                  @default(0)
   // references the enum UserRole
   userRole            Int                  @default(0)
-  puzzles             Puzzle[]
+  puzzles             Puzzle[]             @relation(name: "puzzleAuthor")
   completedPuzzles    PuzzleCompleteData[]
   bans                UserBan[]            @relation(name: "bans")
   bansExpedited       UserBan[]            @relation(name: "bansExpedited")
@@ -26,6 +26,7 @@ model User {
   ReportsReviewed     PuzzleReport[]       @relation(name: "reviewer")
   PuzzleTranslation   PuzzleTranslation[]  @relation(name: "PuzzleTranslationUser")
   TranslationReviewed PuzzleTranslation[]  @relation(name: "PuzzleTranslationReviewer")
+  puzzlesHidden       Puzzle[]             @relation(name: "puzzlehiddenBy")
 
   @@map("users")
 }
@@ -37,7 +38,6 @@ model UserBan {
   reason          String
   moderatorId     String?
   moderator       User?     @relation(name: "bansExpedited", fields: [moderatorId], references: [id], onDelete: SetNull)
-  lifted          Boolean   @default(false)
   reasonLifted    String?
   moderatorLiftId String?
   moderatorLift   User?     @relation(name: "bansLifted", fields: [moderatorLiftId], references: [id], onDelete: SetNull)
@@ -58,7 +58,7 @@ model Puzzle {
   averageTime             Float?
   averageDifficultyRating Float?
   title                   String
-  user                    User?                @relation(fields: [author], references: [id], onDelete: Restrict)
+  user                    User?                @relation(name: "puzzleAuthor", fields: [author], references: [id], onDelete: Restrict)
   author                  String?
   authorName              String               @default("official")
   data                    String
@@ -69,7 +69,9 @@ model Puzzle {
   minimumNands            Int
   createdAt               DateTime             @default(now())
   locale                  String               @default("en")
-  hidden                  Boolean              @default(false)
+  hiddenAt                DateTime?
+  hiddenById              String?
+  hiddenBy                User?                @relation(name: "puzzlehiddenBy", fields: [hiddenById], references: [id], onDelete: SetNull)
   completionsData         PuzzleCompleteData[]
   puzzleReports           PuzzleReport[]
   translations            PuzzleTranslation[]
@@ -78,18 +80,18 @@ model Puzzle {
 }
 
 model PuzzleCompleteData {
-  id               String   @id @default(uuid())
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String    @id @default(uuid())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId           String
-  puzzle           Puzzle   @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+  puzzle           Puzzle    @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
   puzzleId         Int
   timeTaken        Int?
   componentsUsed   Int?
   nandsUsed        Int?
   difficultyRating Int?
-  completed        Boolean  @default(false)
-  liked            Boolean  @default(false)
-  createdAt        DateTime @default(now())
+  completedAt      DateTime?
+  liked            Boolean   @default(false)
+  createdAt        DateTime  @default(now())
 
   @@unique([userId, puzzleId])
   @@map("puzzle_complete_data")
@@ -103,7 +105,6 @@ model PuzzleReport {
   puzzleId    Int
   reason      String
   legit       Boolean   @default(false)
-  reviewed    Boolean   @default(false)
   reviewedAt  DateTime?
   reviewNotes String?
   reviewer    User?     @relation(name: "reviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
@@ -126,7 +127,6 @@ model PuzzleTranslation {
   approved    Boolean
   reviewer    User?     @relation(name: "PuzzleTranslationReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
   reviewerId  String?
-  reviewed    Boolean   @default(false)
   reviewedAt  DateTime?
   createdAt   DateTime  @default(now())
 

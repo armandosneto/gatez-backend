@@ -17,7 +17,7 @@ class UserBanService {
     let userBan = await client.userBan.findFirst({
       where: {
         userId: userId,
-        lifted: false,
+        liftedAt: null,
       },
     });
 
@@ -146,7 +146,7 @@ class UserBanService {
       throw new AppError("Ban not found!", 404);
     }
 
-    if (ban.lifted) {
+    if (ban.liftedAt) {
       throw new AppError("Ban has already been lifted!", 409);
     }
 
@@ -161,7 +161,6 @@ class UserBanService {
       data: {
         reasonLifted: reason,
         moderatorLiftId: moderator.id,
-        lifted: true,
         liftedAt: new Date(),
       },
     });

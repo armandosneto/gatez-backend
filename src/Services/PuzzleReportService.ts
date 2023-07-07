@@ -39,7 +39,7 @@ class PuzzleReportService {
   async listReports(pagination: PaginationRequest) {
     return queryPaginationResult(pagination, client.puzzleReport.count, client.puzzleReport.findMany, {
       where: {
-        reviewed: false,
+        reviewedAt: null,
       },
       include: {
         user: {
@@ -81,7 +81,7 @@ class PuzzleReportService {
             legit: true,
           },
           {
-            reviewed: false,
+            reviewedAt: null,
           },
         ],
       },

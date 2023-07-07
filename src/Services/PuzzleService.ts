@@ -25,7 +25,7 @@ class PuzzleService {
     return client.puzzle.findFirst({
       where: {
         id: puzzleId,
-        hidden: false,
+        hiddenAt: null,
       },
     });
   }
@@ -83,7 +83,9 @@ class PuzzleService {
             completionsData: {
               some: {
                 userId,
-                completed: true,
+                NOT: {
+                  completedAt: null,
+                },
               },
             },
           },
@@ -157,7 +159,7 @@ class PuzzleService {
       where.completionsData = {
         every: {
           userId: userId,
-          completed: false,
+          completedAt: null,
         },
       };
     }
@@ -240,7 +242,7 @@ class PuzzleService {
       componentsUsed,
       nandsUsed,
       difficultyRating,
-      completed: true,
+      completedAt: new Date(),
     });
 
     let likes = puzzle.likes;
@@ -248,7 +250,7 @@ class PuzzleService {
     let averageTime = puzzle.averageTime;
     let averageDifficultyRating = puzzle.averageDifficultyRating;
 
-    if (!previousCompleteData.completed) {
+    if (!previousCompleteData.completedAt) {
       averageTime = this._calculateNewAverage(puzzle.averageTime, puzzle.completions, time);
       averageDifficultyRating = this._calculateNewAverage(
         puzzle.averageDifficultyRating,
@@ -285,7 +287,7 @@ class PuzzleService {
 
     let newTrophiesValue = undefined;
 
-    if (!previousCompleteData.completed) {
+    if (!previousCompleteData.completedAt) {
       newTrophiesValue = user.trophies + getTrophies(newDifficulty);
 
       await userService.updateTrophies(user.id, newTrophiesValue);
@@ -333,7 +335,7 @@ class PuzzleService {
       meta: {
         ...metaData,
         liked: completeData?.liked ?? false,
-        completed: completeData?.completed ?? false,
+        completed: !!completeData?.completedAt,
         difficulty: getDifficultyLabelByDifficulty(puzzle.difficulty),
         difficultyRating,
         canPlay,
@@ -342,12 +344,12 @@ class PuzzleService {
   }
 
   async hidePuzzle(puzzleId: number): Promise<PuzzleSimpleData> {
-    const puzzle = await this.update(puzzleId, { hidden: true });
+    const puzzle = await this.update(puzzleId, { hiddenAt: new Date() });
     return this._puzzleSimpleInfo(puzzle);
   }
 
   async unhidePuzzle(puzzleId: number): Promise<PuzzleSimpleData> {
-    const puzzle = await this.update(puzzleId, { hidden: false });
+    const puzzle = await this.update(puzzleId, { hiddenAt: null });
     return this._puzzleSimpleInfo(puzzle);
   }
 
@@ -355,7 +357,9 @@ class PuzzleService {
   listAllHidden(pagination: PaginationRequest) {
     return queryPaginationResult(pagination, client.puzzle.count, client.puzzle.findMany, {
       where: {
-        hidden: true,
+        NOT: {
+          hiddenAt: null,
+        }
       },
       select: {
         id: true,
@@ -383,7 +387,7 @@ class PuzzleService {
       id: puzzle.id,
       title: puzzle.title,
       authorName: puzzle.authorName,
-      hidden: puzzle.hidden,
+      hiddenAt: puzzle.hiddenAt,
       completions: puzzle.completions,
       likes: puzzle.likes,
       downloads: puzzle.downloads,
@@ -397,7 +401,7 @@ class PuzzleService {
     locale: string,
     orderBy: Prisma.Enumerable<Prisma.PuzzleOrderByWithRelationInput> | undefined = undefined
   ): Promise<PuzzleMetadata[]> {
-    where.hidden = false;
+    where.hiddenAt = null;
 
     const puzzles = await client.puzzle.findMany({
       where,
@@ -432,7 +436,7 @@ class PuzzleService {
         },
         completionsData: {
           every: {
-            completed: false,
+            completedAt: null,
           },
         },
       },
