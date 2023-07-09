@@ -5,7 +5,6 @@ import { User } from "@prisma/client";
 import { removeSensitiveData } from "../utils/userUtil";
 import { userService } from "../Services/UserService";
 
-
 class UserController {
   async create(request: Request, response: Response) {
     let { name, email, password } = request.body as User;

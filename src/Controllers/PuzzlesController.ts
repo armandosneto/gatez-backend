@@ -174,7 +174,7 @@ class PuzzlesController {
     return response.status(201).json(translation);
   }
 
-  async officialSnapshot(request: Request, response: Response) {
+  async officialSnapshot(_: Request, response: Response) {
     const officialPuzzles = await puzzleService.getOfficial();
 
     const officialPuzzlesComplete = officialPuzzles.map((puzzle): PuzzleFullData => {
