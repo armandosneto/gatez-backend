@@ -1,4 +1,4 @@
-import { User, UserBan } from "@prisma/client";
+import { Prisma, User, UserBan } from "@prisma/client";
 import { client } from "../prisma/client";
 import { AppError } from "../Errors/AppError";
 import { msToDays, addDays } from "../utils/timeUtil";
@@ -52,10 +52,15 @@ class UserBanService {
 
   // TODO add a explicit type
   getAllForUser(userId: string, pagination: PaginationRequest) {
+    const orderBy = {
+      createdAt: "desc",
+    } as Prisma.UserBanOrderByWithRelationInput;
+
     return queryPaginationResult(pagination, client.userBan.count, client.userBan.findMany, {
       where: {
         userId: userId,
       },
+      orderBy,
       include: {
         user: {
           select: {
@@ -84,6 +89,10 @@ class UserBanService {
 
   // TODO add a explicit type
   getAllActive(pagination: PaginationRequest) {
+    const orderBy = {
+      createdAt: "desc",
+    } as Prisma.UserBanOrderByWithRelationInput;
+
     return queryPaginationResult(pagination, client.userBan.count, client.userBan.findMany, {
       where: {
         lifted: false,
@@ -91,6 +100,7 @@ class UserBanService {
           gt: new Date(),
         },
       },
+      orderBy,
       include: {
         user: {
           select: {

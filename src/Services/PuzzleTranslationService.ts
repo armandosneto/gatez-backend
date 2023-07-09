@@ -1,4 +1,4 @@
-import { Puzzle, PuzzleTranslation } from "@prisma/client";
+import { Prisma, Puzzle, PuzzleTranslation } from "@prisma/client";
 import { AppError } from "../Errors/AppError";
 import { client } from "../prisma/client";
 import { PaginationRequest, queryPaginationResult } from "../Models/Pagination";
@@ -156,11 +156,16 @@ class PuzzleTranslationService {
 
   // TODO add a explicit type
   listPendingTranslations(pagination: PaginationRequest) {
+    const orderBy = {
+      createdAt: "asc",
+    } as Prisma.PuzzleTranslationOrderByWithRelationInput;
+
     return queryPaginationResult(pagination, client.puzzleTranslation.count, client.puzzleTranslation.findMany, {
       where: {
         approved: false,
         reviewedAt: null,
       },
+      orderBy,
       include: {
         puzzle: {
           select: {

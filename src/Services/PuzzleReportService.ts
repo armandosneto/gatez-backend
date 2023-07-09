@@ -66,18 +66,16 @@ class PuzzleReportService {
     const where = {
       puzzleId,
       userId,
+      reviewedAt: reviewed ? { not: null } : null,
     } as Prisma.PuzzleReportWhereInput;
 
-    if (reviewed) {
-      where.NOT = {
-        reviewedAt: null,
-      };
-    } else {
-      where.reviewedAt = null;
-    }
+    const orderBy = {
+      createdAt: "asc",
+    } as Prisma.PuzzleReportOrderByWithRelationInput;
 
     return queryPaginationResult(pagination, client.puzzleReport.count, client.puzzleReport.findMany, {
       where,
+      orderBy,
       include: {
         user: {
           select: {

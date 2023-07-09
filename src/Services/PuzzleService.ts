@@ -355,12 +355,17 @@ class PuzzleService {
 
   // TODO add a explicit type
   listAllHidden(pagination: PaginationRequest) {
+    const orderBy = {
+      createdAt: "desc",
+    } as Prisma.PuzzleOrderByWithRelationInput;
+
     return queryPaginationResult(pagination, client.puzzle.count, client.puzzle.findMany, {
       where: {
-        NOT: {
-          hiddenAt: null,
-        }
+        hiddenAt: {
+          not: null,
+        },
       },
+      orderBy,
       select: {
         id: true,
         title: true,

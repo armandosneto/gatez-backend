@@ -24,10 +24,9 @@ export function createPaginationResult<T>(
   };
 }
 
-
 export async function queryPaginationResult<T, R extends { where: any }>(
   pagination: PaginationRequest,
-  countFunction: (params: { where: R['where'] }) => Promise<number>,
+  countFunction: (params: { where: R["where"] }) => Promise<number>,
   queryFunction: (params: R & { take: number; skip: number }) => Promise<T[]>,
   params: R
 ): Promise<PaginationResponse<T>> {

@@ -1,9 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 
-const env = process.env.NODE_ENV;
+const log_sql = process.env.LOG_SQL;
 
-function clientFactory(env: string): PrismaClient {
-  if (env !== "dev") {
+function clientFactory(logSQL: string): PrismaClient {
+  if (logSQL !== "true") {
     return new PrismaClient();
   }
 
@@ -37,6 +37,6 @@ function clientFactory(env: string): PrismaClient {
   return client;
 }
 
-const client = clientFactory(env!);
+const client = clientFactory(log_sql ?? "false");
 
 export { client };
