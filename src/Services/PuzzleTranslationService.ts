@@ -1,6 +1,7 @@
 import { Puzzle, PuzzleTranslation } from "@prisma/client";
 import { AppError } from "../Errors/AppError";
 import { client } from "../prisma/client";
+import { PaginationRequest, queryPaginationResult } from "../Models/Pagination";
 
 const defaultLocale = "en";
 // Keep in sync with the frontend
@@ -90,7 +91,7 @@ class PuzzleTranslationService {
       throw new AppError(`Locale ${locale} not supported`, 400);
     }
     if (locale === puzzle.locale) {
-        throw new AppError(`Original puzzle is already on locale ${locale}`, 406);
+      throw new AppError(`Original puzzle is already on locale ${locale}`, 406);
     }
     const puzzleId = puzzle.id;
 
@@ -105,6 +106,9 @@ class PuzzleTranslationService {
       description,
       locale,
       approved,
+      reviewed: approved,
+      reviewedAt: approved ? new Date() : null,
+      reviewerId: approved ? userId : null,
     };
 
     const previousUserTranslation = await this.findByPuzzleUserAndLocale(puzzleId, userId, locale);
@@ -123,6 +127,61 @@ class PuzzleTranslationService {
         puzzleId,
         userId,
         ...translationData,
+      },
+    });
+  }
+
+  async review(translationId: string, reviewerId: string, approved: boolean): Promise<PuzzleTranslation> {
+    const exists = await client.puzzleTranslation.count({
+      where: {
+        id: translationId,
+      },
+    });
+
+    if (exists === 0) {
+      throw new AppError("Puzzle does not exist!", 404);
+    }
+
+    return client.puzzleTranslation.update({
+      where: {
+        id: translationId,
+      },
+      data: {
+        reviewerId,
+        approved,
+        reviewedAt: new Date(),
+      },
+    });
+  }
+
+  // TODO add a explicit type
+  listPendingTranslations(pagination: PaginationRequest) {
+    return queryPaginationResult(pagination, client.puzzleTranslation.count, client.puzzleTranslation.findMany, {
+      where: {
+        approved: false,
+        reviewedAt: null,
+      },
+      include: {
+        puzzle: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            user: {
+              select: {
+                name: true,
+                userRole: true,
+              },
+            },
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            userRole: true,
+          },
+        },
       },
     });
   }

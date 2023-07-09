@@ -1,15 +1,12 @@
-import { Puzzle, PuzzleCompleteData, User } from "@prisma/client";
+import { Puzzle, User } from "@prisma/client";
 import { Request, Response } from "express";
-import {
-  difficultyLabels,
-  getDifficultyLabelByDifficulty,
-  getDifficultyByDifficultyLabel,
-} from "../utils/difficultyUtil";
+import { getDifficultyByDifficultyLabel } from "../utils/difficultyUtil";
 import { MetadataWhitoutDescription, PuzzleFullData, PuzzleMetadata } from "../Models/PuzzleModels";
 import { Category, Difficulty, Duration, puzzleService } from "../Services/PuzzleService";
 import { puzzleReportService } from "../Services/PuzzleReportService";
 import { puzzleCompleteDataService } from "../Services/PuzzleCompleteDataService";
 import { puzzleTranslationService } from "../Services/PuzzleTranslationService";
+import { AppError } from "../Errors/AppError";
 
 type PuzzleSubmit = Pick<
   Puzzle,
@@ -28,7 +25,7 @@ class PuzzlesController {
     const category = request.params.category as Category;
     const userId = response.locals.user.id as string;
     const locale = response.locals.locale as string;
-    
+
     const metadata = await puzzleService.listByCategory(category, userId, locale);
 
     return response.json(removeDescription(metadata));
@@ -39,7 +36,14 @@ class PuzzlesController {
     const userId = response.locals.user.id as string;
     const locale = response.locals.locale as string;
 
-    let metadata = await puzzleService.searchPuzzles(searchTerm, duration, difficulty, includeCompleted, userId, locale);
+    let metadata = await puzzleService.searchPuzzles(
+      searchTerm,
+      duration,
+      difficulty,
+      includeCompleted,
+      userId,
+      locale
+    );
 
     return response.json(removeDescription(metadata));
   }
@@ -48,13 +52,14 @@ class PuzzlesController {
     const puzzleId = request.params.puzzleId;
 
     // verify if request.body has reason
-    const reason = request.body.reason;
+    const reason = request.body.reason as string;
 
-    if (!reason) {
-      return response.status(400).send("Missing reason");
+    if (!reason || reason.length === 0) {
+      throw new AppError("Missing reason", 400);
     }
 
     const userId = response.locals.user.id;
+
     const report = await puzzleReportService.reportPuzzle(+puzzleId, userId, reason);
     return response.status(201).json(report);
   }
@@ -86,7 +91,7 @@ class PuzzlesController {
 
     const puzzle = await puzzleService.get(puzzleId);
     if (!puzzle) {
-      return response.status(404).send();
+      throw new AppError("Puzzle not found", 404);
     }
 
     const user = response.locals.user;
@@ -95,7 +100,7 @@ class PuzzlesController {
     const difficultyRating = getDifficultyByDifficultyLabel(request.body.difficultyRating);
 
     if (difficultyRating === -1) {
-      return response.status(400).send("Invalid difficulty rating!");
+      throw new AppError("nvalid difficulty rating!", 400);
     }
 
     const { completeData, trophies } = await puzzleService.completePuzzle(
@@ -119,7 +124,7 @@ class PuzzlesController {
 
     const puzzle = await puzzleService.get(puzzleId);
     if (!puzzle) {
-      return response.status(404).send();
+      throw new AppError("Puzzle not found", 404);
     }
 
     const userId = response.locals.user.id as string;
@@ -129,6 +134,10 @@ class PuzzlesController {
     if (!completeData) {
       completeData = await puzzleCompleteDataService.create(puzzle, userId);
     }
+
+    puzzle.downloads++;
+
+    await puzzleService.update(puzzle.id, { downloads: puzzle.downloads });
 
     return response.json(await puzzleService.buildPlayPuzzleObject(puzzle, completeData!, locale));
   }
@@ -154,7 +163,7 @@ class PuzzlesController {
 
     const puzzle = await puzzleService.get(puzzleId);
     if (!puzzle) {
-      return response.status(404).send();
+      throw new AppError("Puzzle not found", 404);
     }
 
     const isOwener = await puzzleService.isUserOwner(puzzleId, userId);
@@ -165,7 +174,7 @@ class PuzzlesController {
     return response.status(201).json(translation);
   }
 
-  async officialSnapshot(request: Request, response: Response) {
+  async officialSnapshot(_: Request, response: Response) {
     const officialPuzzles = await puzzleService.getOfficial();
 
     const officialPuzzlesComplete = officialPuzzles.map((puzzle): PuzzleFullData => {
@@ -198,10 +207,10 @@ class PuzzlesController {
 }
 
 function removeDescription(metadatas: PuzzleMetadata[]): MetadataWhitoutDescription[] {
-  return metadatas.map(metadata => {
+  return metadatas.map((metadata) => {
     const { description, ...rest } = metadata;
     return rest;
-  })
+  });
 }
 
 const puzzlesController = new PuzzlesController();

@@ -8,19 +8,44 @@ datasource db {
 }
 
 model User {
-  id               String               @id @default(uuid())
-  name             String               @unique
-  email            String               @unique
-  password         String
-  confirmed        Boolean              @default(false)
-  createdAt        DateTime             @default(now())
-  trophies         Int                  @default(0)
-  puzzles          Puzzle[]
-  completedPuzzles PuzzleCompleteData[]
-  puzzlesResports  PuzzleReport[]
-  translations     PuzzleTranslation[]
+  id                  String               @id @default(uuid())
+  name                String               @unique
+  email               String               @unique
+  password            String
+  confirmed           Boolean              @default(false)
+  createdAt           DateTime             @default(now())
+  trophies            Int                  @default(0)
+  // references the enum UserRole
+  userRole            Int                  @default(0)
+  puzzles             Puzzle[]             @relation(name: "puzzleAuthor")
+  completedPuzzles    PuzzleCompleteData[]
+  bans                UserBan[]            @relation(name: "bans")
+  bansExpedited       UserBan[]            @relation(name: "bansExpedited")
+  bansLifted          UserBan[]            @relation(name: "bansLifted")
+  PuzzleReport        PuzzleReport[]       @relation(name: "user")
+  ReportsReviewed     PuzzleReport[]       @relation(name: "reviewer")
+  PuzzleTranslation   PuzzleTranslation[]  @relation(name: "PuzzleTranslationUser")
+  TranslationReviewed PuzzleTranslation[]  @relation(name: "PuzzleTranslationReviewer")
+  puzzlesHidden       Puzzle[]             @relation(name: "puzzlehiddenBy")
 
   @@map("users")
+}
+
+model UserBan {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(name: "bans", fields: [userId], references: [id], onDelete: Cascade)
+  reason          String
+  moderatorId     String?
+  moderator       User?     @relation(name: "bansExpedited", fields: [moderatorId], references: [id], onDelete: SetNull)
+  reasonLifted    String?
+  moderatorLiftId String?
+  moderatorLift   User?     @relation(name: "bansLifted", fields: [moderatorLiftId], references: [id], onDelete: SetNull)
+  liftedAt        DateTime?
+  createdAt       DateTime  @default(now())
+  expiresAt       DateTime
+
+  @@map("user_bans")
 }
 
 model Puzzle {
@@ -33,7 +58,7 @@ model Puzzle {
   averageTime             Float?
   averageDifficultyRating Float?
   title                   String
-  user                    User?                @relation(fields: [author], references: [id], onDelete: Restrict)
+  user                    User?                @relation(name: "puzzleAuthor", fields: [author], references: [id], onDelete: Restrict)
   author                  String?
   authorName              String               @default("official")
   data                    String
@@ -44,6 +69,9 @@ model Puzzle {
   minimumNands            Int
   createdAt               DateTime             @default(now())
   locale                  String               @default("en")
+  hiddenAt                DateTime?
+  hiddenById              String?
+  hiddenBy                User?                @relation(name: "puzzlehiddenBy", fields: [hiddenById], references: [id], onDelete: SetNull)
   completionsData         PuzzleCompleteData[]
   puzzleReports           PuzzleReport[]
   translations            PuzzleTranslation[]
@@ -52,31 +80,36 @@ model Puzzle {
 }
 
 model PuzzleCompleteData {
-  id               String   @id @default(uuid())
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String    @id @default(uuid())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId           String
-  puzzle           Puzzle   @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+  puzzle           Puzzle    @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
   puzzleId         Int
   timeTaken        Int?
   componentsUsed   Int?
   nandsUsed        Int?
   difficultyRating Int?
-  completed        Boolean  @default(false)
-  liked            Boolean  @default(false)
-  createdAt        DateTime @default(now())
+  completedAt      DateTime?
+  liked            Boolean   @default(false)
+  createdAt        DateTime  @default(now())
 
   @@unique([userId, puzzleId])
   @@map("puzzle_complete_data")
 }
 
 model PuzzleReport {
-  id        String   @id @default(uuid())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  puzzle    Puzzle   @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
-  puzzleId  Int
-  reason    String
-  createdAt DateTime @default(now())
+  id          String    @id @default(uuid())
+  user        User      @relation(name: "user", fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  puzzle      Puzzle    @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+  puzzleId    Int
+  reason      String
+  legit       Boolean   @default(false)
+  reviewedAt  DateTime?
+  reviewNotes String?
+  reviewer    User?     @relation(name: "reviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewerId  String?
+  createdAt   DateTime  @default(now())
 
   @@map("puzzle_reports")
 }
@@ -86,12 +119,15 @@ model PuzzleTranslation {
   id          String    @id @default(uuid())
   puzzle      Puzzle    @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
   puzzleId    Int
-  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user        User?     @relation(name: "PuzzleTranslationUser", fields: [userId], references: [id], onDelete: SetNull)
   userId      String?
   locale      String
   title       String
   description String
   approved    Boolean
+  reviewer    User?     @relation(name: "PuzzleTranslationReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  reviewerId  String?
+  reviewedAt  DateTime?
   createdAt   DateTime  @default(now())
 
   @@unique([userId, puzzleId, locale])

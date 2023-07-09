@@ -1,5 +1,5 @@
 import { Prisma, Puzzle, PuzzleCompleteData, User } from "@prisma/client";
-import { PuzzleFullData, PuzzleMetadata } from "../Models/PuzzleModels";
+import { PuzzleFullData, PuzzleMetadata, PuzzleSimpleData } from "../Models/PuzzleModels";
 import { client } from "../prisma/client";
 import {
   calculateDifficulty,
@@ -10,16 +10,11 @@ import {
 import { puzzleCompleteDataService } from "./PuzzleCompleteDataService";
 import { difficultyLabels } from "../utils/difficultyUtil";
 import { puzzleTranslationService } from "./PuzzleTranslationService";
+import { userService } from "./UserService";
+import { PaginationRequest, queryPaginationResult } from "../Models/Pagination";
 
-type Category =
-  | "official"
-  | "top-rated"
-  | "new"
-  | "easy"
-  | "medium"
-  | "hard"
-  | "mine"
-  | "completed";
+// Keep in sync with frontend
+type Category = "official" | "top-rated" | "new" | "easy" | "medium" | "hard" | "mine" | "completed";
 
 type Duration = "short" | "medium" | "long" | "any";
 
@@ -27,9 +22,10 @@ type Difficulty = "easy" | "medium" | "hard" | "any";
 
 class PuzzleService {
   get(puzzleId: number): Promise<Puzzle | null> {
-    return client.puzzle.findUnique({
+    return client.puzzle.findFirst({
       where: {
         id: puzzleId,
+        hiddenAt: null,
       },
     });
   }
@@ -43,17 +39,23 @@ class PuzzleService {
   }
 
   async isUserOwner(puzzleId: number, userId: string): Promise<boolean> {
-    const id = await client.puzzle.findFirst({
-      select: {
-        id: true,
-      },
+    const count = await client.puzzle.count({
       where: {
         id: puzzleId,
         author: userId,
       },
     });
 
-    return !!id;
+    return count > 0;
+  }
+
+  update(puzzleId: number, data: Prisma.PuzzleUpdateInput): Promise<Puzzle> {
+    return client.puzzle.update({
+      where: {
+        id: puzzleId,
+      },
+      data,
+    });
   }
 
   delete(puzzleId: number): Promise<Puzzle> {
@@ -81,7 +83,9 @@ class PuzzleService {
             completionsData: {
               some: {
                 userId,
-                completed: true,
+                NOT: {
+                  completedAt: null,
+                },
               },
             },
           },
@@ -155,7 +159,7 @@ class PuzzleService {
       where.completionsData = {
         every: {
           userId: userId,
-          completed: false,
+          completedAt: null,
         },
       };
     }
@@ -230,26 +234,15 @@ class PuzzleService {
   ): Promise<{ completeData: PuzzleCompleteData; trophies: number | undefined }> {
     const puzzleId = puzzle.id;
 
-    const previousCompleteData = (await puzzleCompleteDataService.getByPuzzleAndUser(
-      puzzleId,
-      user.id
-    ))!;
+    const previousCompleteData = (await puzzleCompleteDataService.getByPuzzleAndUser(puzzleId, user.id))!;
 
-    await client.puzzleCompleteData.update({
-      where: {
-        userId_puzzleId: {
-          puzzleId,
-          userId: user.id,
-        },
-      },
-      data: {
-        timeTaken: time,
-        liked,
-        componentsUsed,
-        nandsUsed,
-        difficultyRating,
-        completed: true,
-      },
+    await puzzleCompleteDataService.update(puzzleId, user.id, {
+      timeTaken: time,
+      liked,
+      componentsUsed,
+      nandsUsed,
+      difficultyRating,
+      completedAt: new Date(),
     });
 
     let likes = puzzle.likes;
@@ -257,7 +250,7 @@ class PuzzleService {
     let averageTime = puzzle.averageTime;
     let averageDifficultyRating = puzzle.averageDifficultyRating;
 
-    if (!previousCompleteData.completed) {
+    if (!previousCompleteData.completedAt) {
       averageTime = this._calculateNewAverage(puzzle.averageTime, puzzle.completions, time);
       averageDifficultyRating = this._calculateNewAverage(
         puzzle.averageDifficultyRating,
@@ -284,32 +277,20 @@ class PuzzleService {
 
     const newDifficulty = calculateDifficulty(averageTime!, averageDifficultyRating);
 
-    await client.puzzle.update({
-      where: {
-        id: puzzleId,
-      },
-      data: {
-        likes,
-        completions,
-        averageTime,
-        averageDifficultyRating,
-        difficulty: newDifficulty,
-      },
+    await this.update(puzzleId, {
+      likes,
+      completions,
+      averageTime,
+      averageDifficultyRating,
+      difficulty: newDifficulty,
     });
 
     let newTrophiesValue = undefined;
 
-    if (!previousCompleteData.completed) {
+    if (!previousCompleteData.completedAt) {
       newTrophiesValue = user.trophies + getTrophies(newDifficulty);
 
-      await client.user.update({
-        where: {
-          id: user.id,
-        },
-        data: {
-          trophies: newTrophiesValue,
-        },
-      });
+      await userService.updateTrophies(user.id, newTrophiesValue);
     }
 
     const completeData = (await puzzleCompleteDataService.getByPuzzleAndUser(puzzleId, user.id))!;
@@ -342,7 +323,6 @@ class PuzzleService {
     }
 
     if (locale !== puzzle.locale) {
-
       const translation = await puzzleTranslationService.findApprovedTranslation(puzzle.id, locale);
       if (translation) {
         metaData.title = translation.title;
@@ -355,11 +335,63 @@ class PuzzleService {
       meta: {
         ...metaData,
         liked: completeData?.liked ?? false,
-        completed: completeData?.completed ?? false,
+        completed: !!completeData?.completedAt,
         difficulty: getDifficultyLabelByDifficulty(puzzle.difficulty),
         difficultyRating,
         canPlay,
       },
+    };
+  }
+
+  async hidePuzzle(puzzleId: number): Promise<PuzzleSimpleData> {
+    const puzzle = await this.update(puzzleId, { hiddenAt: new Date() });
+    return this._puzzleSimpleInfo(puzzle);
+  }
+
+  async unhidePuzzle(puzzleId: number): Promise<PuzzleSimpleData> {
+    const puzzle = await this.update(puzzleId, { hiddenAt: null });
+    return this._puzzleSimpleInfo(puzzle);
+  }
+
+  // TODO add a explicit type
+  listAllHidden(pagination: PaginationRequest) {
+    return queryPaginationResult(pagination, client.puzzle.count, client.puzzle.findMany, {
+      where: {
+        NOT: {
+          hiddenAt: null,
+        }
+      },
+      select: {
+        id: true,
+        title: true,
+        authorName: true,
+        hiddenAt: true,
+        completions: true,
+        likes: true,
+        downloads: true,
+        createdAt: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            userRole: true,
+          },
+        },
+        puzzleReports: true,
+      },
+    });
+  }
+
+  private _puzzleSimpleInfo(puzzle: Puzzle): PuzzleSimpleData {
+    return {
+      id: puzzle.id,
+      title: puzzle.title,
+      authorName: puzzle.authorName,
+      hiddenAt: puzzle.hiddenAt,
+      completions: puzzle.completions,
+      likes: puzzle.likes,
+      downloads: puzzle.downloads,
+      createdAt: puzzle.createdAt,
     };
   }
 
@@ -369,6 +401,8 @@ class PuzzleService {
     locale: string,
     orderBy: Prisma.Enumerable<Prisma.PuzzleOrderByWithRelationInput> | undefined = undefined
   ): Promise<PuzzleMetadata[]> {
+    where.hiddenAt = null;
+
     const puzzles = await client.puzzle.findMany({
       where,
       orderBy,
@@ -379,6 +413,8 @@ class PuzzleService {
           },
         },
       },
+      // TODO paginate the puzzles
+      take: 500,
     });
 
     return Promise.all(
@@ -400,18 +436,14 @@ class PuzzleService {
         },
         completionsData: {
           every: {
-            completed: false,
+            completedAt: null,
           },
         },
       },
     });
   }
 
-  private _calculateNewAverage(
-    oldAverage: number | null,
-    oldTotal: number,
-    newValue: number | null
-  ): number | null {
+  private _calculateNewAverage(oldAverage: number | null, oldTotal: number, newValue: number | null): number | null {
     if (oldAverage === null) {
       return newValue;
     }

@@ -4,9 +4,9 @@ import { compare } from "bcryptjs";
 import { sign } from "jsonwebtoken";
 import { removeSensitiveData } from "../utils/userUtil";
 import { userService } from "../Services/UserService";
+import { userBanService } from "../Services/UserBanService";
 
 const defaultAuthErrorMessage = "name or password is wrong!";
-
 
 class AuthenticateController {
   async login(request: Request, response: Response) {
@@ -24,6 +24,8 @@ class AuthenticateController {
       throw new AppError(defaultAuthErrorMessage, 401);
     }
 
+    await userBanService.checkIfBanned(user.id);
+
     const token = sign({}, process.env.JWT_KEY as string, {
       subject: user.id,
     });
@@ -36,7 +38,7 @@ class AuthenticateController {
     return response.json(data);
   }
 
-  async validateToken(request: Request, response: Response) {
+  async validateToken(_: Request, response: Response) {
     return response.json(removeSensitiveData(response.locals.user));
   }
 }

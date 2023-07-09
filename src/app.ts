@@ -14,19 +14,19 @@ app.use(cors());
 app.use(populateLocale);
 app.use(router);
 
-app.use(
-  (err: Error, request: Request, response: Response, _next: NextFunction) => {
-    if (err instanceof AppError) {
-      return response.status(err.statusCode).json({
-        message: err.message,
-      });
-    }
+app.use((err: Error, _: Request, response: Response, _next: NextFunction) => {
+  let status = 500;
+  const errorObject = {
+    message: `Internal server error: ${err.message}`,
+  };
 
-    return response.status(500).json({
-      status: "Error",
-      message: `Internal server error: ${err.message}`,
-    });
+  if (err instanceof AppError) {
+    status = err.statusCode;
+    errorObject.message = err.message;
   }
-);
+
+  console.error(errorObject, err);
+  return response.status(status).json(errorObject);
+});
 
 export { app };
