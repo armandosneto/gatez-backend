@@ -8,7 +8,7 @@ import { paginated } from "../middlewares/paginated";
 
 const router = Router();
 
-router.get("/translations", ensureHasRole(UserRole.moderator), paginated, moderationController.listTranslations);
+router.get("/translations", paginated, moderationController.listTranslations);
 router.put(
   "/translations/:translationId",
   ensureHasRole(UserRole.moderator),

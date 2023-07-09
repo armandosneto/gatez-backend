@@ -2,12 +2,14 @@ import { Router } from "express";
 import { body } from "express-validator";
 import { puzzlesController } from "../Controllers/PuzzlesController";
 import { checkForErrors } from "../middlewares/checkForErrors";
+import { ensureHasRole } from "../middlewares/ensureHasRole";
+import { UserRole } from "../Models/UserRole";
 
 const router = Router();
 
 router.get("/list/:category", puzzlesController.list);
 router.get("/download/:puzzleId", puzzlesController.download);
-router.get("/officialSnapshot", puzzlesController.officialSnapshot);
+router.get("/officialSnapshot", ensureHasRole(UserRole.admin), puzzlesController.officialSnapshot);
 
 router.post("/submit", puzzlesController.submit);
 router.post("/complete/:puzzleId", puzzlesController.complete);

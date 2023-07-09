@@ -8,8 +8,8 @@ export function paginated(request: Request, response: Response, next: NextFuncti
   if (request.query.page) {
     page = Number.parseInt(request.query.page.toString());
 
-    if (page < 0) {
-      throw new AppError("page cannot be negative!", 400);
+    if (isNaN(page) || page < 0) {
+      throw new AppError("page cannot be negative and has to be a number!", 400);
     }
   }
 
@@ -18,8 +18,8 @@ export function paginated(request: Request, response: Response, next: NextFuncti
   if (request.query.pageSize) {
     pageSize = Number.parseInt(request.query.pageSize.toString());
 
-    if (pageSize <= 0) {
-      throw new AppError("pageSize has to be greater than 0!", 400);
+    if (isNaN(pageSize) || pageSize <= 0) {
+      throw new AppError("pageSize has to be greater than 0 and has to be a number!", 400);
     }
   }
 
