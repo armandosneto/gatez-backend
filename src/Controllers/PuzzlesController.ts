@@ -60,10 +60,6 @@ class PuzzlesController {
 
     const userId = response.locals.user.id;
 
-    if (await puzzleReportService.userHasReportedPuzzle(+puzzleId, userId)) {
-      throw new AppError("You have already reported this puzzle!", 409);
-    }
-
     const report = await puzzleReportService.reportPuzzle(+puzzleId, userId, reason);
     return response.status(201).json(report);
   }

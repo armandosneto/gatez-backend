@@ -2,7 +2,7 @@ import { Router } from "express";
 import { ensureHasRole } from "../middlewares/ensureHasRole";
 import { UserRole } from "../Models/UserRole";
 import { moderationController } from "../Controllers/ModerationController";
-import { body } from "express-validator";
+import { body, query } from "express-validator";
 import { checkForErrors } from "../middlewares/checkForErrors";
 import { paginated } from "../middlewares/paginated";
 
@@ -17,23 +17,39 @@ router.put(
   moderationController.respondToTranslation
 );
 
-router.get("/reports", ensureHasRole(UserRole.moderator), paginated, moderationController.listReports);
-router.put("/reports/:reportId", ensureHasRole(UserRole.moderator), moderationController.respondToReport);
+router.get(
+  "/reports",
+  ensureHasRole(UserRole.moderator),
+  query("puzzleId").isUUID().optional(),
+  query("userId").isUUID().optional(),
+  query("reviewed").isBoolean().optional(),
+  checkForErrors,
+  paginated,
+  moderationController.listReports
+);
+router.put(
+  "/reports/:reportId",
+  ensureHasRole(UserRole.moderator),
+  body("reviewNotes").isString().notEmpty(),
+  body("legit").isBoolean(),
+  checkForErrors,
+  moderationController.respondToReport
+);
 
 // Admin routes
 
 router.put(
   "/ban/:userId",
   ensureHasRole(UserRole.admin),
-  body("reason").isString(),
-  body("duration").isNumeric(),
+  body("reason").isString().notEmpty(),
+  body("duration").isInt(),
   checkForErrors,
   moderationController.banUser
 );
 router.put(
   "/ban/lift/:userBanId",
   ensureHasRole(UserRole.admin),
-  body("reason").isString(),
+  body("reason").isString().notEmpty(),
   checkForErrors,
   moderationController.unbanUser
 );
@@ -43,7 +59,7 @@ router.get("/ban", ensureHasRole(UserRole.admin), paginated, moderationControlle
 router.put(
   "/userRole/:userId",
   ensureHasRole(UserRole.admin),
-  body("newRole").isNumeric(),
+  body("newRole").isInt(),
   checkForErrors,
   moderationController.changeUserRole
 );

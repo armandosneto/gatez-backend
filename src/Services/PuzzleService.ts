@@ -365,7 +365,7 @@ class PuzzleService {
         id: true,
         title: true,
         authorName: true,
-        hidden: true,
+        hiddenAt: true,
         completions: true,
         likes: true,
         downloads: true,

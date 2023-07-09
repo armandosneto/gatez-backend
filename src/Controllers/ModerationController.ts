@@ -8,6 +8,7 @@ import { AppError } from "../Errors/AppError";
 import { PaginationRequest } from "../Models/Pagination";
 import { puzzleReportService } from "../Services/PuzzleReportService";
 import { puzzleTranslationService } from "../Services/PuzzleTranslationService";
+import { User } from "@prisma/client";
 
 class ModerationController {
   async listTranslations(_: Request, response: Response) {
@@ -19,21 +20,35 @@ class ModerationController {
   async respondToTranslation(request: Request, response: Response) {
     const moderatorId = response.locals.user.id as string;
     const { approved } = request.body as {
-      approved: true;
+      approved: boolean;
     };
     const translationId = request.params.translationId;
 
     return response.json(await puzzleTranslationService.review(translationId, moderatorId, approved));
   }
 
-  async listReports(_: Request, response: Response) {
+  async listReports(request: Request, response: Response) {
     const pagination = response.locals.pagination as PaginationRequest;
+    const { puzzleId, userId, reviewed } = request.query as {
+      puzzleId: string | undefined;
+      userId: string | undefined;
+      reviewed: string | undefined;
+    };
 
-    return response.json(await puzzleReportService.listReports(pagination));
+    return response.json(
+      await puzzleReportService.listReports(pagination, puzzleId, userId, reviewed ? reviewed === "true" : undefined)
+    );
   }
 
   async respondToReport(request: Request, response: Response) {
-    return response.json({ route: "respondToReport" });
+    const moderator = response.locals.user as User;
+    const reportId = request.params.reportId;
+    const { legit, reviewNotes } = request.body as {
+      legit: true;
+      reviewNotes: string;
+    };
+
+    return response.json(await puzzleReportService.repondToReport(reportId, legit, reviewNotes, moderator));
   }
 
   async banUser(request: Request, response: Response) {
