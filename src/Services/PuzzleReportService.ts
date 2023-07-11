@@ -21,7 +21,11 @@ class PuzzleReportService {
     }
 
     if (!puzzle.author) {
-      throw new AppError("You can't report an official puzzle!", 422);
+      throw new AppError(
+        `You can't report an official puzzle! If you find a problem with an official puzzle\
+, please open an issue on the github page.`,
+        422
+      );
     }
 
     if (puzzle.author === userId) {
@@ -138,7 +142,15 @@ class PuzzleReportService {
     report.reviewerId = moderator.id;
 
     const { id, puzzle, ...data } = report;
-    const reportedUser = puzzle.user!;
+    const reportedUser = puzzle.user;
+
+    if (!reportedUser) {
+      throw new AppError(
+        `This is a report on an official puzzle and is probably a mistake! If \
+you find a problem with an official puzzle, please open an issue on the github page.`,
+        422
+      );
+    }
 
     if (reportedUser.id === moderator.id) {
       throw new AppError("You can't respond to a report on yourself!", 422);
