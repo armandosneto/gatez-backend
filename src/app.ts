@@ -16,14 +16,17 @@ app.use(router);
 
 app.use((err: Error, _: Request, response: Response, _next: NextFunction) => {
   let status = 500;
-  const errorObject = {
-    message: `Internal server error: ${err.message}`,
-  };
+  let error = `Internal server error: ${err.message}`;
 
   if (err instanceof AppError) {
     status = err.statusCode;
-    errorObject.message = err.message;
+    error = err.message;
   }
+
+  const errorObject = {
+    status,
+    error,
+  };
 
   console.error("Generating error response:", errorObject, err);
   return response.status(status).json(errorObject);

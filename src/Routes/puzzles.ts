@@ -17,8 +17,10 @@ router.post("/report/:puzzleId", puzzlesController.report);
 router.post("/search", puzzlesController.search);
 router.post(
   "/translate/:puzzleId",
-  body("title").isString(),
-  body("description").isString(),
+  body("title")
+    .isString()
+    .matches(/^\S.{2,28}\S$/, "i"),
+  body("description").isString().isLength({ min: 0, max: 1000 }),
   body("locale").isString(),
   checkForErrors,
   puzzlesController.suggestTranslation

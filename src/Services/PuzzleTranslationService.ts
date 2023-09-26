@@ -102,11 +102,10 @@ class PuzzleTranslationService {
     }
 
     const translationData = {
-      title,
-      description,
+      title: title.trim(),
+      description: description.trim(),
       locale,
       approved,
-      reviewed: approved,
       reviewedAt: approved ? new Date() : null,
       reviewerId: approved ? userId : null,
     };

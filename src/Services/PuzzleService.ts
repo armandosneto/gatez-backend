@@ -327,6 +327,7 @@ class PuzzleService {
       if (translation) {
         metaData.title = translation.title;
         metaData.description = translation.description;
+        metaData.locale = locale;
       }
     }
 
