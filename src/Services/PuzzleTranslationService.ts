@@ -161,7 +161,7 @@ class PuzzleTranslationService {
 
     return queryPaginationResult(pagination, client.puzzleTranslation.count, client.puzzleTranslation.findMany, {
       where: {
-        approved: false,
+        approved: true,
         reviewedAt: null,
       },
       orderBy,
@@ -169,6 +169,7 @@ class PuzzleTranslationService {
         puzzle: {
           select: {
             id: true,
+            locale: true,
             title: true,
             description: true,
             user: {
