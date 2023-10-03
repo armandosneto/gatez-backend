@@ -10,8 +10,11 @@ export async function ensureAuthenticated(request: Request, response: Response, 
   if (!authToken) {
     throw new AppError("JWT token is missing!", 401);
   }
+  if (!authToken.startsWith("Bearer ")) {
+    throw new AppError("Only Bearer tokens are supported!", 401);
+  }
 
-  const [, token = authToken] = authToken.split(" ");
+  const [, token ] = authToken.split(" ");
 
   try {
     const decrypted = verify(token, process.env.JWT_KEY as string);

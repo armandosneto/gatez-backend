@@ -28,7 +28,7 @@ app.use((err: Error, _: Request, response: Response, _next: NextFunction) => {
     error,
   };
 
-  console.error("Generating error response:", errorObject, err);
+  console.error(`Generating error response:\n${JSON.stringify(errorObject)}\n`, err);
   return response.status(status).json(errorObject);
 });
 
