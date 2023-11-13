@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { AppError, ErrorType } from "../Errors/AppError";
+import { AppError, ErrorType } from "../Errors";
 import { PaginationRequest } from "../Models/Pagination";
 
 export function paginated(request: Request, response: Response, next: NextFunction): void {

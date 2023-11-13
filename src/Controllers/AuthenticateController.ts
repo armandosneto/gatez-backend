@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { AppError, ErrorType } from "../Errors/AppError";
+import { AppError, ErrorType } from "../Errors";
 import { compare } from "bcryptjs";
 import { sign } from "jsonwebtoken";
 import { removeSensitiveData } from "../utils/userUtil";

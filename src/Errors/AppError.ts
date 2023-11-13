@@ -1,36 +1,4 @@
-export enum ErrorType {
-  UserNotFound,
-  ModeratorNotFound,
-  BanExpired,
-  BanLifted,
-  BanNotFound,
-  BanReasonEmpty,
-  BanDurationZero,
-  BanUserAlreadyBanned,
-  YouAreBanned,
-  PuzzleNotFound,
-  PuzzleAlreadyTranslated,
-  PuzzleAlreadyInLocale,
-  LocaleNotSupported,
-  CantJudgeOwnReport,
-  OfficialReported,
-  CantReportOfficial,
-  ReportNotFound,
-  ReportOwnPuzzle,
-  AlreadyReported,
-  InvalidCredentials,
-  InvalidRole,
-  ReportReasonEmpty,
-  InvalidDifficulty,
-  DeleteOthersPuzzle,
-  UserAlreadyExists,
-  BadRequest, // Generic 400 error
-  InvalidAuth,
-  InternalServerError,
-  NoPermissions,
-  InvalidPage,
-  InvalidPageSize,
-}
+import { ErrorType } from "./ErrorType";
 
 export class AppError extends Error {
   public readonly statusCode: number;

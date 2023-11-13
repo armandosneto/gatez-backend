@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { AppError, ErrorType } from "../Errors/AppError";
+import { AppError, ErrorType } from "../Errors";
 import { verify } from "jsonwebtoken";
 import { userService } from "../Services/UserService";
 import { userBanService } from "../Services/UserBanService";

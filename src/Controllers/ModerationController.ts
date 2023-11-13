@@ -4,7 +4,7 @@ import { puzzleService } from "../Services/PuzzleService";
 import { userBanService } from "../Services/UserBanService";
 import { removeSensitiveData } from "../utils/userUtil";
 import { UserRole } from "../Models/UserRole";
-import { AppError, ErrorType } from "../Errors/AppError";
+import { AppError, ErrorType } from "../Errors";
 import { PaginationRequest } from "../Models/Pagination";
 import { puzzleReportService } from "../Services/PuzzleReportService";
 import { puzzleTranslationService } from "../Services/PuzzleTranslationService";

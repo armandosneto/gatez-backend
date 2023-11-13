@@ -2,7 +2,7 @@ import { Prisma, PuzzleReport, User } from "@prisma/client";
 import { client } from "../prisma/client";
 import { puzzleService } from "./PuzzleService";
 import { PaginationRequest, queryPaginationResult } from "../Models/Pagination";
-import { AppError, ErrorType } from "../Errors/AppError";
+import { AppError, ErrorType } from "../Errors";
 import { userBanService } from "./UserBanService";
 
 const reports_to_hide = +(process.env.REPORTS_TO_HIDE ?? 10);

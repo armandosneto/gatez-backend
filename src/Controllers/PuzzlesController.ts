@@ -6,7 +6,7 @@ import { Category, Difficulty, Duration, puzzleService } from "../Services/Puzzl
 import { puzzleReportService } from "../Services/PuzzleReportService";
 import { puzzleCompleteDataService } from "../Services/PuzzleCompleteDataService";
 import { puzzleTranslationService } from "../Services/PuzzleTranslationService";
-import { AppError, ErrorType } from "../Errors/AppError";
+import { AppError, ErrorType } from "../Errors";
 
 type PuzzleSubmit = Pick<
   Puzzle,

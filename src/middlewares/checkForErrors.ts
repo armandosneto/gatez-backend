@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { ValidationError, validationResult } from "express-validator";
-import { AppError, ErrorType } from "../Errors/AppError";
+import { AppError, ErrorType } from "../Errors";
 
 function validationErrorToString(error: ValidationError): string {
   return `${error.msg}${error.value ? ` '${error.value}'` : " "}for param '${error.param}'${

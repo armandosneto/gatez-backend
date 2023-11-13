@@ -3,7 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import "express-async-errors";
 import { router } from "./Routes/routes";
-import { AppError, ErrorType } from "./Errors/AppError";
+import { AppError, ErrorType } from "./Errors";
 import { populateLocale } from "./middlewares/populateLocale";
 
 const app = express();

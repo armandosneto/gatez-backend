@@ -1,7 +1,7 @@
 import { Prisma, User, UserBan } from "@prisma/client";
 import { client } from "../prisma/client";
 import { userBanService } from "./UserBanService";
-import { AppError, ErrorType } from "../Errors/AppError";
+import { AppError, ErrorType } from "../Errors";
 import { UserRole } from "../Models/UserRole";
 
 class UserService {

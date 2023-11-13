@@ -1,6 +1,6 @@
 import { Prisma, User, UserBan } from "@prisma/client";
 import { client } from "../prisma/client";
-import { AppError, ErrorType } from "../Errors/AppError";
+import { AppError, ErrorType } from "../Errors";
 import { msToDays, addDays } from "../utils/timeUtil";
 import { PaginationRequest, queryPaginationResult } from "../Models/Pagination";
 
