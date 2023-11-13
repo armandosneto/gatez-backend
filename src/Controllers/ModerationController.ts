@@ -4,7 +4,7 @@ import { puzzleService } from "../Services/PuzzleService";
 import { userBanService } from "../Services/UserBanService";
 import { removeSensitiveData } from "../utils/userUtil";
 import { UserRole } from "../Models/UserRole";
-import { AppError } from "../Errors/AppError";
+import { AppError, ErrorType } from "../Errors/AppError";
 import { PaginationRequest } from "../Models/Pagination";
 import { puzzleReportService } from "../Services/PuzzleReportService";
 import { puzzleTranslationService } from "../Services/PuzzleTranslationService";
@@ -95,7 +95,7 @@ class ModerationController {
     };
 
     if (newRole < UserRole.user || newRole > UserRole.admin) {
-      throw new AppError("Invalid user role!", 400);
+      throw new AppError("Invalid user role!", 400, ErrorType.InvalidRole);
     }
 
     return response.json(removeSensitiveData(await userService.changeRole(userId, newRole)));

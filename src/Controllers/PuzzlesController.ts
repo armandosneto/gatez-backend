@@ -6,7 +6,7 @@ import { Category, Difficulty, Duration, puzzleService } from "../Services/Puzzl
 import { puzzleReportService } from "../Services/PuzzleReportService";
 import { puzzleCompleteDataService } from "../Services/PuzzleCompleteDataService";
 import { puzzleTranslationService } from "../Services/PuzzleTranslationService";
-import { AppError } from "../Errors/AppError";
+import { AppError, ErrorType } from "../Errors/AppError";
 
 type PuzzleSubmit = Pick<
   Puzzle,
@@ -55,7 +55,7 @@ class PuzzlesController {
     const reason = request.body.reason as string;
 
     if (!reason || reason.length === 0) {
-      throw new AppError("Missing reason", 400);
+      throw new AppError("Missing reason", 400, ErrorType.ReportReasonEmpty);
     }
 
     const userId = response.locals.user.id;
@@ -91,7 +91,7 @@ class PuzzlesController {
 
     const puzzle = await puzzleService.get(puzzleId);
     if (!puzzle) {
-      throw new AppError("Puzzle not found", 404);
+      throw new AppError("Puzzle not found", 404, ErrorType.PuzzleNotFound);
     }
 
     const user = response.locals.user;
@@ -100,7 +100,7 @@ class PuzzlesController {
     const difficultyRating = getDifficultyByDifficultyLabel(request.body.difficultyRating);
 
     if (difficultyRating === -1) {
-      throw new AppError("nvalid difficulty rating!", 400);
+      throw new AppError("Invalid difficulty rating!", 400, ErrorType.InvalidDifficulty);
     }
 
     const { completeData, trophies } = await puzzleService.completePuzzle(
@@ -124,7 +124,7 @@ class PuzzlesController {
 
     const puzzle = await puzzleService.get(puzzleId);
     if (!puzzle) {
-      throw new AppError("Puzzle not found", 404);
+      throw new AppError("Puzzle not found", 404, ErrorType.PuzzleNotFound);
     }
 
     const userId = response.locals.user.id as string;
@@ -149,7 +149,7 @@ class PuzzlesController {
     const isOwener = await puzzleService.isUserOwner(puzzleId, userId);
 
     if (!isOwener) {
-      return response.status(403).json({ success: false });
+      throw new AppError("You can only delete your own puzzles!", 403, ErrorType.DeleteOthersPuzzle);
     }
 
     await puzzleService.delete(puzzleId);
@@ -163,7 +163,7 @@ class PuzzlesController {
 
     const puzzle = await puzzleService.get(puzzleId);
     if (!puzzle) {
-      throw new AppError("Puzzle not found", 404);
+      throw new AppError("Puzzle not found", 404, ErrorType.PuzzleNotFound);
     }
 
     const isOwener = await puzzleService.isUserOwner(puzzleId, userId);

@@ -1,6 +1,6 @@
 import { Prisma, User, UserBan } from "@prisma/client";
 import { client } from "../prisma/client";
-import { AppError } from "../Errors/AppError";
+import { AppError, ErrorType } from "../Errors/AppError";
 import { msToDays, addDays } from "../utils/timeUtil";
 import { PaginationRequest, queryPaginationResult } from "../Models/Pagination";
 
@@ -37,7 +37,8 @@ class UserBanService {
     if (userBan) {
       throw new AppError(
         `You are banned! Your ban will last for ${msToDays(userBanService.timeToExpire(userBan))} more days!`,
-        403
+        403,
+        ErrorType.YouAreBanned
       );
     }
   }
@@ -122,17 +123,18 @@ class UserBanService {
 
   async banUser(user: User, reason: string, moderator: User, durationDays: number): Promise<UserBan> {
     if (reason.trim().length === 0) {
-      throw new AppError("Reason must not be empty!", 400);
+      throw new AppError("Reason must not be empty!", 400, ErrorType.BanReasonEmpty);
     }
 
     if (durationDays <= 0) {
-      throw new AppError("Duration in days must be greater than 0!", 400);
+      throw new AppError("Duration in days must be greater than 0!", 400, ErrorType.BanDurationZero);
     }
 
     if (!!(await this.getActiveForUser(user.id))) {
       throw new AppError(
         "The user is already banned! If you want to change their ban, lift the current and create a new one.",
-        409
+        409,
+        ErrorType.BanUserAlreadyBanned
       );
     }
 
@@ -148,20 +150,20 @@ class UserBanService {
 
   async unbanUser(userBanId: string, reason: string, moderator: User): Promise<UserBan> {
     if (reason.trim().length === 0) {
-      throw new AppError("Reason must not be empty!", 400);
+      throw new AppError("Reason must not be empty!", 400, ErrorType.BanReasonEmpty);
     }
 
     const ban = await this.get(userBanId);
     if (!ban) {
-      throw new AppError("Ban not found!", 404);
+      throw new AppError("Ban not found!", 404, ErrorType.BanNotFound);
     }
 
     if (ban.liftedAt) {
-      throw new AppError("Ban has already been lifted!", 409);
+      throw new AppError("Ban has already been lifted!", 409, ErrorType.BanLifted);
     }
 
     if (this.isExpired(ban)) {
-      throw new AppError("Ban has already expired!", 409);
+      throw new AppError("Ban has already expired!", 409, ErrorType.BanExpired);
     }
 
     return client.userBan.update({

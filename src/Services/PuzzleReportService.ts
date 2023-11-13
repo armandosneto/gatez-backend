@@ -2,7 +2,7 @@ import { Prisma, PuzzleReport, User } from "@prisma/client";
 import { client } from "../prisma/client";
 import { puzzleService } from "./PuzzleService";
 import { PaginationRequest, queryPaginationResult } from "../Models/Pagination";
-import { AppError } from "../Errors/AppError";
+import { AppError, ErrorType } from "../Errors/AppError";
 import { userBanService } from "./UserBanService";
 
 const reports_to_hide = +(process.env.REPORTS_TO_HIDE ?? 10);
@@ -11,25 +11,30 @@ const reports_to_ban = +(process.env.REPORTS_TO_HIDE ?? 5);
 class PuzzleReportService {
   async reportPuzzle(puzzleId: number, userId: string, reason: string): Promise<PuzzleReport> {
     if (await this.userHasReportedPuzzle(+puzzleId, userId)) {
-      throw new AppError("You have already reported this puzzle!", 409);
+      throw new AppError("You have already reported this puzzle!", 409, ErrorType.AlreadyReported);
     }
 
     const puzzle = await puzzleService.get(puzzleId);
 
     if (!puzzle) {
-      throw new AppError("Puzzle does not exist!", 404);
+      throw new AppError("Puzzle does not exist!", 404, ErrorType.PuzzleNotFound);
     }
 
     if (!puzzle.author) {
       throw new AppError(
         `You can't report an official puzzle! If you find a problem with an official puzzle\
 , please open an issue on the github page.`,
-        422
+        422,
+        ErrorType.CantReportOfficial
       );
     }
 
     if (puzzle.author === userId) {
-      throw new AppError("You can't report your own puzzle! Maybe you shloud delete it.", 422);
+      throw new AppError(
+        "You can't report your own puzzle! Maybe you shloud delete it.",
+        422,
+        ErrorType.ReportOwnPuzzle
+      );
     }
 
     const puzzleReport = await client.puzzleReport.create({
@@ -133,7 +138,7 @@ class PuzzleReportService {
     });
 
     if (!report) {
-      throw new AppError("Report not found!", 404);
+      throw new AppError("Report not found!", 404, ErrorType.ReportNotFound);
     }
 
     report.legit = legit;
@@ -148,12 +153,13 @@ class PuzzleReportService {
       throw new AppError(
         `This is a report on an official puzzle and is probably a mistake! If \
 you find a problem with an official puzzle, please open an issue on the github page.`,
-        422
+        422,
+        ErrorType.OfficialReported
       );
     }
 
     if (reportedUser.id === moderator.id) {
-      throw new AppError("You can't respond to a report on yourself!", 422);
+      throw new AppError("You can't respond to a report on yourself!", 422, ErrorType.CantJudgeOwnReport);
     }
 
     if ((await this._validReportsCount(reportedUser.id)) >= reports_to_ban) {

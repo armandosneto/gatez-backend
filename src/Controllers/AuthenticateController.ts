@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { AppError } from "../Errors/AppError";
+import { AppError, ErrorType } from "../Errors/AppError";
 import { compare } from "bcryptjs";
 import { sign } from "jsonwebtoken";
 import { removeSensitiveData } from "../utils/userUtil";
@@ -15,13 +15,13 @@ class AuthenticateController {
     const user = await userService.getByName(name);
 
     if (!user) {
-      throw new AppError(defaultAuthErrorMessage, 401);
+      throw new AppError(defaultAuthErrorMessage, 401, ErrorType.InvalidCredentials);
     }
 
     const passwordMatch = await compare(password, user.password);
 
     if (!passwordMatch) {
-      throw new AppError(defaultAuthErrorMessage, 401);
+      throw new AppError(defaultAuthErrorMessage, 401, ErrorType.InvalidCredentials);
     }
 
     await userBanService.checkIfBanned(user.id);

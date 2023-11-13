@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { hash } from "bcryptjs";
-import { AppError } from "../Errors/AppError";
+import { AppError, ErrorType } from "../Errors/AppError";
 import { User } from "@prisma/client";
 import { removeSensitiveData } from "../utils/userUtil";
 import { userService } from "../Services/UserService";
@@ -14,7 +14,7 @@ class UserController {
     const userAlreadyExists = await userService.usernameOrEmailIsInUse(name, email);
 
     if (userAlreadyExists) {
-      throw new AppError("User already exists", 400);
+      throw new AppError("User already exists", 400, ErrorType.UserAlreadyExists);
     }
 
     const passwordHash = await hash(password, 8);

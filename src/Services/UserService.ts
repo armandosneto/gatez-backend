@@ -1,7 +1,7 @@
 import { Prisma, User, UserBan } from "@prisma/client";
 import { client } from "../prisma/client";
 import { userBanService } from "./UserBanService";
-import { AppError } from "../Errors/AppError";
+import { AppError, ErrorType } from "../Errors/AppError";
 import { UserRole } from "../Models/UserRole";
 
 class UserService {
@@ -56,12 +56,12 @@ class UserService {
   async banUser(userId: string, reason: string, moderatorId: string, duration: number): Promise<UserBan> {
     const user = await this.get(userId);
     if (user === null) {
-      throw new AppError("User not found!", 404);
+      throw new AppError("User not found!", 404, ErrorType.UserNotFound);
     }
 
     const moderator = await this.get(moderatorId);
     if (moderator === null) {
-      throw new AppError("Moderator not found!", 404);
+      throw new AppError("Moderator not found!", 404, ErrorType.ModeratorNotFound);
     }
 
     return userBanService.banUser(user, reason, moderator, duration);
@@ -70,7 +70,7 @@ class UserService {
   async unbanUser(userBanId: string, reason: string, moderatorId: string): Promise<UserBan> {
     const moderator = await this.get(moderatorId);
     if (moderator === null) {
-      throw new AppError("Moderator not found!", 404);
+      throw new AppError("Moderator not found!", 404, ErrorType.ModeratorNotFound);
     }
 
     return userBanService.unbanUser(userBanId, reason, moderator);
@@ -79,7 +79,7 @@ class UserService {
   async changeRole(userId: string, newRole: UserRole): Promise<User> {
     const user = this.get(userId);
     if (!user) {
-      throw new AppError("User not found!", 404);
+      throw new AppError("User not found!", 404, ErrorType.UserNotFound);
     }
 
     return await this.update(userId, { userRole: newRole });

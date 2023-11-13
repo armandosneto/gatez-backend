@@ -3,7 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import "express-async-errors";
 import { router } from "./Routes/routes";
-import { AppError } from "./Errors/AppError";
+import { AppError, ErrorType } from "./Errors/AppError";
 import { populateLocale } from "./middlewares/populateLocale";
 
 const app = express();
@@ -15,17 +15,24 @@ app.use(populateLocale);
 app.use(router);
 
 app.use((err: Error, _: Request, response: Response, _next: NextFunction) => {
-  let status = 500;
-  let error = `Internal server error: ${err.message}`;
+  let status: number;
+  let error: string;
+  let errorCode: ErrorType;
 
   if (err instanceof AppError) {
     status = err.statusCode;
     error = err.message;
+    errorCode = err.type;
+  } else {
+    status = 500;
+    error = `Internal server error: ${err.message}`;
+    errorCode = ErrorType.InternalServerError;
   }
 
   const errorObject = {
     status,
     error,
+    errorCode: ErrorType[errorCode],
   };
 
   console.error(`Generating error response:\n${JSON.stringify(errorObject)}\n`, err);

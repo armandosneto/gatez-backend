@@ -1,5 +1,5 @@
 import { Prisma, Puzzle, PuzzleTranslation } from "@prisma/client";
-import { AppError } from "../Errors/AppError";
+import { AppError, ErrorType } from "../Errors/AppError";
 import { client } from "../prisma/client";
 import { PaginationRequest, queryPaginationResult } from "../Models/Pagination";
 
@@ -88,17 +88,21 @@ class PuzzleTranslationService {
     approved: boolean
   ): Promise<PuzzleTranslation> {
     if (supportedLocales.indexOf(locale) === -1) {
-      throw new AppError(`Locale ${locale} not supported`, 400);
+      throw new AppError(`Locale ${locale} not supported`, 400, ErrorType.LocaleNotSupported);
     }
     if (locale === puzzle.locale) {
-      throw new AppError(`Original puzzle is already on locale ${locale}`, 406);
+      throw new AppError(`Original puzzle is already on locale ${locale}`, 406, ErrorType.PuzzleAlreadyInLocale);
     }
     const puzzleId = puzzle.id;
 
     const approvedTranslation = await this.findApprovedTranslation(puzzleId, locale);
 
     if (approvedTranslation) {
-      throw new AppError(`Puzzle ${puzzleId} already has an approved translation in ${locale}`, 406);
+      throw new AppError(
+        `Puzzle ${puzzleId} already has an approved translation in ${locale}`,
+        406,
+        ErrorType.PuzzleAlreadyTranslated
+      );
     }
 
     const translationData = {
@@ -138,7 +142,7 @@ class PuzzleTranslationService {
     });
 
     if (exists === 0) {
-      throw new AppError("Puzzle does not exist!", 404);
+      throw new AppError("Puzzle does not exist!", 404, ErrorType.PuzzleNotFound);
     }
 
     return client.puzzleTranslation.update({
