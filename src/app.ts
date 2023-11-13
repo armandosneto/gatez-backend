@@ -15,28 +15,22 @@ app.use(populateLocale);
 app.use(router);
 
 app.use((err: Error, _: Request, response: Response, _next: NextFunction) => {
-  let status: number;
-  let error: string;
-  let errorCode: ErrorType;
+  let appError: AppError;
 
   if (err instanceof AppError) {
-    status = err.statusCode;
-    error = err.message;
-    errorCode = err.type;
+    appError = err;
   } else {
-    status = 500;
-    error = `Internal server error: ${err.message}`;
-    errorCode = ErrorType.InternalServerError;
+    appError = new AppError(`Internal server error: ${err.message}`, 500, ErrorType.InternalServerError)
   }
 
   const errorObject = {
-    status,
-    error,
-    errorCode: ErrorType[errorCode],
+    status: appError.statusCode,
+    error: appError.message,
+    errorCode: ErrorType[appError.type],
   };
 
   console.error(`Generating error response:\n${JSON.stringify(errorObject)}\n`, err);
-  return response.status(status).json(errorObject);
+  return response.status(appError.statusCode).json(errorObject);
 });
 
 export { app };

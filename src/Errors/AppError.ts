@@ -27,6 +27,9 @@ export enum ErrorType {
   BadRequest, // Generic 400 error
   InvalidAuth,
   InternalServerError,
+  NoPermissions,
+  InvalidPage,
+  InvalidPageSize,
 }
 
 export class AppError extends Error {
