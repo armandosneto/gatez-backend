@@ -139,7 +139,7 @@ class PuzzlesController {
 
     await puzzleService.update(puzzle.id, { downloads: puzzle.downloads });
 
-    return response.json(await puzzleService.buildPlayPuzzleObject(puzzle, completeData!, locale));
+    return response.json(await puzzleService.buildPlayPuzzleObject(puzzle, completeData!, locale, userId));
   }
 
   async delete(request: Request, response: Response) {

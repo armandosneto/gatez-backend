@@ -20,13 +20,13 @@ app.use((err: Error, _: Request, response: Response, _next: NextFunction) => {
   if (err instanceof AppError) {
     appError = err;
   } else {
-    appError = new AppError(`Internal server error: ${err.message}`, 500, ErrorType.InternalServerError)
+    appError = new AppError(`Internal server error: ${err.message}`, 500, ErrorType.InternalServerError);
   }
 
   const errorObject = {
     status: appError.statusCode,
-    error: appError.message,
-    errorCode: ErrorType[appError.type],
+    message: appError.message,
+    error: ErrorType[appError.type],
   };
 
   console.error(`Generating error response:\n${JSON.stringify(errorObject)}\n`, err);

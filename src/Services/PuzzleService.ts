@@ -301,21 +301,22 @@ class PuzzleService {
     };
   }
 
-  async canPlayPuzzle(puzzleId: number): Promise<boolean> {
-    return (await this._findPreviousUnfinishedPuzzle(puzzleId)) === null;
+  async canPlayPuzzle(puzzleId: number, userId: string): Promise<boolean> {
+    return (await this._findPreviousUnfinishedPuzzle(puzzleId, userId)).length === 0;
   }
 
   async buildPlayPuzzleObject(
     puzzle: Puzzle,
     completeData: PuzzleCompleteData,
-    locale: string
+    locale: string,
+    userId: string
   ): Promise<PuzzleFullData> {
     const { data, ...metaData } = puzzle;
     let difficultyRating: string | null = null;
     let canPlay = true;
 
     if (puzzle.author === null) {
-      canPlay = await this.canPlayPuzzle(puzzle.id);
+      canPlay = await this.canPlayPuzzle(puzzle.id, userId);
     }
 
     if (completeData?.difficultyRating != null) {
@@ -425,28 +426,21 @@ class PuzzleService {
 
     return Promise.all(
       puzzles.map(async (puzzle) => {
-        return (await this.buildPlayPuzzleObject(puzzle, puzzle.completionsData[0], locale)).meta;
+        return (await this.buildPlayPuzzleObject(puzzle, puzzle.completionsData[0], locale, userId)).meta;
       })
     );
   }
 
-  private _findPreviousUnfinishedPuzzle(puzzleId: number): Promise<{ id: number } | null> {
-    return client.puzzle.findFirst({
-      select: {
-        id: true,
-      },
-      where: {
-        author: null,
-        id: {
-          lt: puzzleId,
-        },
-        completionsData: {
-          every: {
-            completedAt: null,
-          },
-        },
-      },
-    });
+  private async _findPreviousUnfinishedPuzzle(puzzleId: number, userId: string): Promise<{ id: number }[]> {
+    return client.$queryRaw`
+    SELECT p.id
+      FROM puzzles p
+      LEFT JOIN puzzle_complete_data pcd ON p.id = pcd.puzzleId AND pcd.userId = ${userId}
+    WHERE
+      p.id < ${puzzleId}
+      AND p.author IS NULL
+      AND (pcd.id IS NULL OR pcd.completedAt IS NULL)
+    LIMIT 1`;
   }
 
   private _calculateNewAverage(oldAverage: number | null, oldTotal: number, newValue: number | null): number | null {
