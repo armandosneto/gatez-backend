@@ -138,8 +138,9 @@ class PuzzlesController {
     puzzle.downloads++;
 
     await puzzleService.update(puzzle.id, { downloads: puzzle.downloads });
+    const completePuzzle = { ...puzzle, completionsData: [completeData] }
 
-    return response.json(await puzzleService.buildPlayPuzzleObject(puzzle, completeData!, locale, userId));
+    return response.json(await puzzleService.buildPlayPuzzleObject(completePuzzle, userId, locale));
   }
 
   async delete(request: Request, response: Response) {

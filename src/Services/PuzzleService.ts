@@ -1,4 +1,4 @@
-import { Prisma, Puzzle, PuzzleCompleteData, User } from "@prisma/client";
+import { Prisma, Puzzle, PuzzleCompleteData, PuzzleTranslation, User } from "@prisma/client";
 import { PuzzleFullData, PuzzleMetadata, PuzzleSimpleData } from "../Models/PuzzleModels";
 import { client } from "../prisma/client";
 import {
@@ -157,9 +157,11 @@ class PuzzleService {
 
     if (!includeCompleted) {
       where.completionsData = {
-        every: {
+        none: {
           userId: userId,
-          completedAt: null,
+          NOT: {
+            completedAt: null,
+          },
         },
       };
     }
@@ -301,36 +303,43 @@ class PuzzleService {
     };
   }
 
-  async canPlayPuzzle(puzzleId: number, userId: string): Promise<boolean> {
-    return (await this._findPreviousUnfinishedPuzzle(puzzleId, userId)).length === 0;
+  async buildPlayPuzzleObject(
+    puzzle: Puzzle & { completionsData: PuzzleCompleteData[] },
+    userId: string,
+    locale: string
+  ) {
+    const canPlay = await this._findLastFinishedOfficialPuzzle(userId);
+    const translation = await puzzleTranslationService.findApprovedTranslation(puzzle.id, locale);
+
+    return this._buildPlayPuzzleObject(puzzle, puzzle.completionsData[0], translation, canPlay);
   }
 
-  async buildPlayPuzzleObject(
+  async _buildPlayPuzzleObject(
     puzzle: Puzzle,
-    completeData: PuzzleCompleteData,
-    locale: string,
-    userId: string
+    completeData: PuzzleCompleteData | null | undefined,
+    translation: PuzzleTranslation | null | undefined,
+    lastFinishedOfficialPuzzle: number
   ): Promise<PuzzleFullData> {
     const { data, ...metaData } = puzzle;
     let difficultyRating: string | null = null;
     let canPlay = true;
 
     if (puzzle.author === null) {
-      canPlay = await this.canPlayPuzzle(puzzle.id, userId);
+      canPlay = puzzle.id <= lastFinishedOfficialPuzzle;
     }
 
     if (completeData?.difficultyRating != null) {
       difficultyRating = difficultyLabels[completeData.difficultyRating];
     }
 
-    if (locale !== puzzle.locale) {
-      const translation = await puzzleTranslationService.findApprovedTranslation(puzzle.id, locale);
-      if (translation) {
-        metaData.title = translation.title;
-        metaData.description = translation.description;
-        metaData.locale = locale;
-      }
+    if (translation) {
+      metaData.title = translation.title;
+      metaData.description = translation.description;
+      metaData.locale = translation.locale;
     }
+
+    (metaData as any).completionsData = undefined;
+    (metaData as any).translations = undefined;
 
     return {
       game: data,
@@ -419,28 +428,61 @@ class PuzzleService {
             userId,
           },
         },
+        translations: {
+          where: {
+            locale,
+            approved: true,
+          },
+        },
       },
       // TODO paginate the puzzles
       take: 500,
     });
 
+    const canPlay = await this._findLastFinishedOfficialPuzzle(userId);
+
     return Promise.all(
       puzzles.map(async (puzzle) => {
-        return (await this.buildPlayPuzzleObject(puzzle, puzzle.completionsData[0], locale, userId)).meta;
+        return (await this._buildPlayPuzzleObject(puzzle, puzzle.completionsData[0], puzzle.translations[0], canPlay))
+          .meta;
       })
     );
   }
 
-  private async _findPreviousUnfinishedPuzzle(puzzleId: number, userId: string): Promise<{ id: number }[]> {
-    return client.$queryRaw`
-    SELECT p.id
-      FROM puzzles p
-      LEFT JOIN puzzle_complete_data pcd ON p.id = pcd.puzzleId AND pcd.userId = ${userId}
-    WHERE
-      p.id < ${puzzleId}
-      AND p.author IS NULL
-      AND (pcd.id IS NULL OR pcd.completedAt IS NULL)
-    LIMIT 1`;
+  private async _findLastFinishedOfficialPuzzle(userId: string): Promise<number> {
+    const id: Promise<[{ id: number }]> = client.$queryRaw`
+SELECT
+  COALESCE(
+    (
+      SELECT
+        MIN(p.id)
+      FROM
+        puzzles p
+      WHERE
+        p.id > (
+          SELECT
+            MAX(pcd.puzzleId)
+          FROM
+            puzzle_complete_data pcd
+          WHERE
+            pcd.userId = ${userId}
+            AND pcd.completedAt IS NOT NULL
+        )
+        AND p.author IS NULL
+    ),
+    (
+      SELECT
+        MIN(p.id)
+      FROM
+        puzzles p
+      WHERE
+        p.author IS NULL
+    )
+  ) as id`;
+
+    const result = await id;
+    console.log(result);
+    return result[0].id;
   }
 
   private _calculateNewAverage(oldAverage: number | null, oldTotal: number, newValue: number | null): number | null {
