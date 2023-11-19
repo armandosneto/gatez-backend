@@ -314,7 +314,7 @@ class PuzzleService {
     return this._buildPlayPuzzleObject(puzzle, puzzle.completionsData[0], translation, canPlay);
   }
 
-  async _buildPlayPuzzleObject(
+  private async _buildPlayPuzzleObject(
     puzzle: Puzzle,
     completeData: PuzzleCompleteData | null | undefined,
     translation: PuzzleTranslation | null | undefined,
@@ -481,7 +481,6 @@ SELECT
   ) as id`;
 
     const result = await id;
-    console.log(result);
     return result[0].id;
   }
 
