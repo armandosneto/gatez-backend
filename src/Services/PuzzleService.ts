@@ -464,8 +464,10 @@ SELECT
             MAX(pcd.puzzleId)
           FROM
             puzzle_complete_data pcd
+            INNER JOIN puzzles p0 ON p0.id = pcd.puzzleId
           WHERE
             pcd.userId = ${userId}
+            AND p0.author IS NULL
             AND pcd.completedAt IS NOT NULL
         )
         AND p.author IS NULL
