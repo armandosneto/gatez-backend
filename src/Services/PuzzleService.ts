@@ -308,10 +308,10 @@ class PuzzleService {
     userId: string,
     locale: string
   ) {
-    const canPlay = await this._findLastFinishedOfficialPuzzle(userId);
+    const lastFinishedOfficialPuzzle = await this._findLastFinishedOfficialPuzzle(userId);
     const translation = await puzzleTranslationService.findApprovedTranslation(puzzle.id, locale);
 
-    return this._buildPlayPuzzleObject(puzzle, puzzle.completionsData[0], translation, canPlay);
+    return this._buildPlayPuzzleObject(puzzle, puzzle.completionsData[0], translation, lastFinishedOfficialPuzzle);
   }
 
   private async _buildPlayPuzzleObject(
@@ -439,12 +439,18 @@ class PuzzleService {
       take: 500,
     });
 
-    const canPlay = await this._findLastFinishedOfficialPuzzle(userId);
+    const lastFinishedOfficialPuzzle = await this._findLastFinishedOfficialPuzzle(userId);
 
     return Promise.all(
       puzzles.map(async (puzzle) => {
-        return (await this._buildPlayPuzzleObject(puzzle, puzzle.completionsData[0], puzzle.translations[0], canPlay))
-          .meta;
+        return (
+          await this._buildPlayPuzzleObject(
+            puzzle,
+            puzzle.completionsData[0],
+            puzzle.translations[0],
+            lastFinishedOfficialPuzzle
+          )
+        ).meta;
       })
     );
   }
