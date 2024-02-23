@@ -14,7 +14,7 @@ export async function ensureAuthenticated(request: Request, response: Response, 
     throw new AppError("Only Bearer tokens are supported!", 401, ErrorType.InvalidAuth);
   }
 
-  const [, token ] = authToken.split(" ");
+  const token = authToken.replace("^Bearer ", "");
 
   try {
     const decrypted = verify(token, process.env.JWT_KEY as string);
