@@ -4,17 +4,19 @@ import { verify } from "jsonwebtoken";
 import { userService } from "../Services/UserService";
 import { userBanService } from "../Services/UserBanService";
 
+const bearer = "Bearer ";
+
 export async function ensureAuthenticated(request: Request, response: Response, next: NextFunction): Promise<void> {
   const authToken = request.headers.authorization;
 
   if (!authToken) {
     throw new AppError("JWT token is missing!", 401, ErrorType.InvalidAuth);
   }
-  if (!authToken.startsWith("Bearer ")) {
+  if (!authToken.startsWith(bearer)) {
     throw new AppError("Only Bearer tokens are supported!", 401, ErrorType.InvalidAuth);
   }
 
-  const token = authToken.replace("^Bearer ", "");
+  const token = authToken.substring(bearer.length);
 
   try {
     const decrypted = verify(token, process.env.JWT_KEY as string);
