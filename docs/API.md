@@ -19,7 +19,7 @@ Base URL (dev): `http://localhost:15001`. All routes are prefixed with `/v1`.
     { "status": 404, "message": "Puzzle not found", "error": "PuzzleNotFound" }
     ```
 
-    Validation failures (express-validator) return `400` with `error: "BadRequest"`. Banned users get `403 YouAreBanned` on any authenticated route.
+    Validation failures (express-validator) return `400` with `error: "BadRequest"`. Banned users get `403 YouAreBanned` on any authenticated route. Too many login or sign-up requests from one IP return `429 TooManyRequests`.
 
 -   **Roles** (`src/Models/UserRole.ts`): `0 = user`, `1 = moderator`, `2 = admin`. A route that requires a role accepts that role or higher.
 
@@ -115,7 +115,13 @@ Side effects: increments `downloads` and creates the user's `PuzzleCompleteData`
 }
 ```
 
-Returns `201` with the created puzzle. The puzzle is tagged with the request `locale`. ⚠️ The server does not validate `data` yet.
+Returns `201` with the created puzzle. The puzzle is tagged with the request `locale`.
+
+Validation (`400 BadRequest` with the reason in `message`):
+
+-   `title` 4–30 characters without surrounding spaces; `description` up to 1000 characters;
+-   `minimumComponents` integer ≥ 0; `maximumComponents` optional, ≥ `minimumComponents`;
+-   `data` must decompress to a valid puzzle (`src/utils/puzzleValidation.ts`): version 1, bounds 2–20, only `programmableSignal`/`programmableAcceptor`/`block` buildings, at least one signal and one acceptor, all lists the same length (≤ 256 rows), signals only `0`/`1`, acceptors `0`/`1`/`x`.
 
 ### `POST /v1/puzzles/complete/:puzzleId`
 

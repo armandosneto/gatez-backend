@@ -17,16 +17,18 @@ Fixed in the commit after the code review:
 -   A missing translation returned `PuzzleNotFound` (now `TranslationNotFound`).
 -   JWTs never expired (now `JWT_EXPIRES_IN`, default 30 days).
 -   The port was hard-coded (now `PORT`).
+-   No rate limiting on login/sign-up (now `RATE_LIMIT_LOGIN` / `RATE_LIMIT_SIGN_UP`).
+-   Submitted puzzles weren't validated (now `src/utils/puzzleValidation.ts`).
+-   No automated tests (now `yarn test`, run in CI).
 
 ## Open: security and production readiness
 
--   No rate limiting on `/v1/login` or `/v1/user` (brute force / spam accounts).
 -   E-mail is not collected (`email = name`), so there is no password recovery.
--   `POST /submit` trusts the client: puzzle `data`, `minimumComponents`, etc. aren't validated, and the only size limit is Express' default 100 kB body.
--   Submitted text (titles, descriptions, translations) isn't checked for profanity. The front-end renders descriptions as HTML, so the client must escape them; see the front-end KNOWN_ISSUES.
+-   `POST /complete` trusts the client: the solution isn't sent, so time and component counts can't be verified.
+-   Submitted text (titles, descriptions, translations) isn't checked for profanity. (The game escapes descriptions before rendering them.)
 -   Most routes have little input validation (see the TODO in `src/Routes/routes.ts`).
 -   SQLite is fine for a single instance. Moving to PostgreSQL only needs a change to the Prisma `datasource`, but the raw SQL in `_findLastFinishedOfficialPuzzle` should be re-tested.
--   No automated tests.
+-   Tests cover the main flows of every route group, but not every error branch.
 
 ## Dependencies
 

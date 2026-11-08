@@ -7,6 +7,11 @@ import { populateLocale } from "./middlewares/populateLocale";
 
 const app = express();
 
+// Number of reverse proxies in front of the app, so rate limiting sees the real client IP
+if (process.env.TRUST_PROXY) {
+  app.set("trust proxy", +process.env.TRUST_PROXY);
+}
+
 app.use(express.json());
 app.use(helmet());
 app.use(cors());

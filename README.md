@@ -43,6 +43,9 @@ The game expects the server at `http://localhost:15001` (see the front-end [docs
 | `REPORTS_TO_BAN`  | no       | `5`     | Legit reports against a user's puzzles that trigger an automatic 100-day ban. |
 | `JWT_EXPIRES_IN`  | no       | `30d`   | Token lifetime ([`ms`](https://github.com/vercel/ms) format, e.g. `12h`, `7d`). |
 | `PORT`            | no       | `15001` | HTTP port. |
+| `RATE_LIMIT_LOGIN` | no      | `20`    | Login attempts per IP every 15 minutes. |
+| `RATE_LIMIT_SIGN_UP` | no    | `10`    | Accounts created per IP per hour. |
+| `TRUST_PROXY`     | no       | —       | Number of reverse proxies in front of the server, so rate limiting sees the real client IP. |
 
 ### Scripts
 
@@ -51,6 +54,7 @@ The game expects the server at `http://localhost:15001` (see the front-end [docs
 | `yarn dev`                | Runs `src/server.ts` with `tsx watch`           |
 | `yarn build`              | Generates the Prisma client and compiles to `dist/` |
 | `yarn start`              | Runs the compiled server                        |
+| `yarn test`               | Runs the test suite (Vitest + Supertest) on a temporary copy of the default database |
 | `yarn prisma studio`      | Opens a browser UI for the database             |
 | `yarn prisma migrate dev` | Applies/creates migrations                      |
 
@@ -74,6 +78,7 @@ src/
   prisma/                Prisma client + database URL
   generated/prisma/      generated Prisma client (git-ignored, created by `prisma generate`)
   defaultDatabase/       SQLite file with the official levels, copied on first run
+tests/                   API tests; each run uses a fresh copy of the default database
   database/              the live database (git-ignored)
 ```
 
@@ -87,11 +92,9 @@ Request flow: `Route → (ensureAuthenticated → ensureHasRole → express-vali
 
 ## Roadmap
 
--   Fix the bugs listed in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md);
--   Tests covering every endpoint;
 -   A Dockerfile;
--   Token expiration, rate limiting, e-mail and password recovery;
--   Validate submitted puzzles and solutions on the server;
+-   E-mail and password recovery;
+-   Validate submitted solutions on the server (puzzles themselves are already validated);
 -   Profanity checks on submitted text;
 -   Pagination on puzzle lists (currently capped at 500);
 -   A moderation UI;

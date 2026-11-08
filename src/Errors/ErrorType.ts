@@ -31,4 +31,5 @@ export enum ErrorType {
   NoPermissions,
   InvalidPage,
   InvalidPageSize,
+  TooManyRequests,
 }

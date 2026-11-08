@@ -97,3 +97,4 @@ src/database/*.sqlite-journal
 
 # Generated Prisma client
 src/generated/
+tests/.tmp/
