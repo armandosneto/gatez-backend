@@ -1,4 +1,4 @@
-import { Prisma, Puzzle, PuzzleCompleteData, PuzzleTranslation, User } from "@prisma/client";
+import { Prisma, Puzzle, PuzzleCompleteData, PuzzleTranslation, User } from "../generated/prisma/client";
 import { PuzzleFullData, PuzzleMetadata, PuzzleSimpleData } from "../Models/PuzzleModels";
 import { client } from "../prisma/client";
 import {

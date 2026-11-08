@@ -30,4 +30,4 @@ Fixed in the commit after the code review:
 
 ## Dependencies
 
-Written against Node 16, Prisma 3 and Express 4. It runs on Node 22 (tested), but Prisma 3 is long out of support. Upgrading Prisma and the other dependencies is the next maintenance step.
+Upgraded in November 2026 to Express 5, Prisma 7 (driver adapter `better-sqlite3`, dates kept as unix-ms to stay compatible with existing databases), helmet 8, jsonwebtoken 9, bcryptjs 3, express-validator 7 and `tsx`. Requires Node.js 20.19+.

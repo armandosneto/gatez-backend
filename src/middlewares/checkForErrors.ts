@@ -3,9 +3,10 @@ import { ValidationError, validationResult } from "express-validator";
 import { AppError, ErrorType } from "../Errors";
 
 function validationErrorToString(error: ValidationError): string {
-  return `${error.msg}${error.value ? ` '${error.value}'` : " "}for param '${error.param}'${
-    error.location ? ` on ${error.location}` : ""
-  }`;
+  if (error.type !== "field") {
+    return error.msg;
+  }
+  return `${error.msg}${error.value ? ` '${error.value}'` : " "}for param '${error.path}' on ${error.location}`;
 }
 
 export async function checkForErrors(request: Request, response: Response, next: NextFunction): Promise<void> {

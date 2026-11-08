@@ -1,4 +1,4 @@
-import { Prisma, PuzzleReport, User } from "@prisma/client";
+import { Prisma, PuzzleReport, User } from "../generated/prisma/client";
 import { client } from "../prisma/client";
 import { puzzleService } from "./PuzzleService";
 import { PaginationRequest, queryPaginationResult } from "../Models/Pagination";

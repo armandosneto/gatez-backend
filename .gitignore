@@ -94,3 +94,6 @@ src/database/*.sqlite-journal
 
 .idea/
 .DS_Store
+
+# Generated Prisma client
+src/generated/

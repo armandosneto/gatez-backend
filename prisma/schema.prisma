@@ -1,10 +1,12 @@
 generator client {
-  provider = "prisma-client-js"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
 }
 
+// The connection URL lives in prisma.config.ts (CLI) and src/prisma/client.ts (runtime)
 datasource db {
   provider = "sqlite"
-  url      = "file:../src/database/shapez_gates_db.sqlite"
 }
 
 model User {

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { hash } from "bcryptjs";
 import { AppError, ErrorType } from "../Errors";
-import { User } from "@prisma/client";
+import { User } from "../generated/prisma/client";
 import { removeSensitiveData } from "../utils/userUtil";
 import { userService } from "../Services/UserService";
 

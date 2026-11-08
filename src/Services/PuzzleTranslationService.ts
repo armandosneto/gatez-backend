@@ -1,4 +1,4 @@
-import { Prisma, Puzzle, PuzzleTranslation } from "@prisma/client";
+import { Prisma, Puzzle, PuzzleTranslation } from "../generated/prisma/client";
 import { AppError, ErrorType } from "../Errors";
 import { client } from "../prisma/client";
 import { PaginationRequest, queryPaginationResult } from "../Models/Pagination";

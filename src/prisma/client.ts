@@ -1,13 +1,21 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaClient } from "../generated/prisma/client";
+import { databaseUrl } from "./databaseUrl";
 
 const log_sql = process.env.LOG_SQL;
 
-function clientFactory(logSQL: string): PrismaClient {
+function createAdapter() {
+  // Prisma <= 6 stored DateTime columns in SQLite as unix epoch milliseconds, keep that format
+  return new PrismaBetterSqlite3({ url: databaseUrl.replace(/^file:/, "") }, { timestampFormat: "unixepoch-ms" });
+}
+
+function clientFactory(logSQL: string) {
   if (logSQL !== "true") {
-    return new PrismaClient();
+    return new PrismaClient({ adapter: createAdapter() });
   }
 
   const client = new PrismaClient({
+    adapter: createAdapter(),
     log: [
       {
         emit: "event",

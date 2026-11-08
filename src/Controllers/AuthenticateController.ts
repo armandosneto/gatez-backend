@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { AppError, ErrorType } from "../Errors";
 import { compare } from "bcryptjs";
-import { sign } from "jsonwebtoken";
+import { sign, SignOptions } from "jsonwebtoken";
 import { removeSensitiveData } from "../utils/userUtil";
 import { userService } from "../Services/UserService";
 import { userBanService } from "../Services/UserBanService";
@@ -28,7 +28,7 @@ class AuthenticateController {
 
     const token = sign({}, process.env.JWT_KEY as string, {
       subject: user.id,
-      expiresIn: process.env.JWT_EXPIRES_IN ?? "30d",
+      expiresIn: (process.env.JWT_EXPIRES_IN ?? "30d") as SignOptions["expiresIn"],
     });
 
     const data = {

@@ -1,7 +1,6 @@
 import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
-import "express-async-errors";
 import { router } from "./Routes/routes";
 import { AppError, ErrorType } from "./Errors";
 import { populateLocale } from "./middlewares/populateLocale";

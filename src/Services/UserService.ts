@@ -1,4 +1,4 @@
-import { Prisma, User, UserBan } from "@prisma/client";
+import { Prisma, User, UserBan } from "../generated/prisma/client";
 import { client } from "../prisma/client";
 import { userBanService } from "./UserBanService";
 import { AppError, ErrorType } from "../Errors";

@@ -1,4 +1,4 @@
-import { Puzzle, User } from "@prisma/client";
+import { Puzzle, User } from "../generated/prisma/client";
 import { Request, Response } from "express";
 import { getDifficultyByDifficultyLabel } from "../utils/difficultyUtil";
 import { MetadataWhitoutDescription, PuzzleFullData, PuzzleMetadata } from "../Models/PuzzleModels";
@@ -49,7 +49,7 @@ class PuzzlesController {
   }
 
   async report(request: Request, response: Response) {
-    const puzzleId = request.params.puzzleId;
+    const puzzleId = request.params.puzzleId as string;
 
     // verify if request.body has reason
     const reason = request.body.reason as string;

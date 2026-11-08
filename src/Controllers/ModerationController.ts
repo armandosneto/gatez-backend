@@ -8,7 +8,7 @@ import { AppError, ErrorType } from "../Errors";
 import { PaginationRequest } from "../Models/Pagination";
 import { puzzleReportService } from "../Services/PuzzleReportService";
 import { puzzleTranslationService } from "../Services/PuzzleTranslationService";
-import { User } from "@prisma/client";
+import { User } from "../generated/prisma/client";
 
 class ModerationController {
   async listTranslations(_: Request, response: Response) {
@@ -22,7 +22,7 @@ class ModerationController {
     const { approved } = request.body as {
       approved: boolean;
     };
-    const translationId = request.params.translationId;
+    const translationId = request.params.translationId as string;
 
     return response.json(await puzzleTranslationService.review(translationId, moderatorId, approved));
   }
@@ -47,7 +47,7 @@ class ModerationController {
 
   async respondToReport(request: Request, response: Response) {
     const moderator = response.locals.user as User;
-    const reportId = request.params.reportId;
+    const reportId = request.params.reportId as string;
     const { legit, reviewNotes } = request.body as {
       legit: true;
       reviewNotes: string;
@@ -57,7 +57,7 @@ class ModerationController {
   }
 
   async banUser(request: Request, response: Response) {
-    const userId = request.params.userId;
+    const userId = request.params.userId as string;
     const moderatorId = response.locals.user.id as string;
 
     const { reason, duration } = request.body as {
@@ -69,7 +69,7 @@ class ModerationController {
   }
 
   async unbanUser(request: Request, response: Response) {
-    const userBanId = request.params.userBanId;
+    const userBanId = request.params.userBanId as string;
     const moderatorId = response.locals.user.id as string;
 
     const { reason } = request.body as {
@@ -80,7 +80,7 @@ class ModerationController {
   }
 
   async listUserBans(request: Request, response: Response) {
-    const userId = request.params.userId;
+    const userId = request.params.userId as string;
     const pagination = response.locals.pagination as PaginationRequest;
 
     return response.json(await userBanService.getAllForUser(userId, pagination));
@@ -93,7 +93,7 @@ class ModerationController {
   }
 
   async changeUserRole(request: Request, response: Response) {
-    const userId = request.params.userId;
+    const userId = request.params.userId as string;
 
     const { newRole } = request.body as {
       newRole: UserRole;

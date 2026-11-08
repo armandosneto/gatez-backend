@@ -1,4 +1,4 @@
-import { Prisma, User, UserBan } from "@prisma/client";
+import { Prisma, User, UserBan } from "../generated/prisma/client";
 import { client } from "../prisma/client";
 import { AppError, ErrorType } from "../Errors";
 import { msToDays, addDays } from "../utils/timeUtil";

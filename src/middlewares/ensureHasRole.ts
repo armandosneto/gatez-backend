@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError, ErrorType } from "../Errors";
 import { UserRole } from "../Models/UserRole";
-import { User } from "@prisma/client";
+import { User } from "../generated/prisma/client";
 
 export function ensureHasRole(
   necesseryRole: UserRole

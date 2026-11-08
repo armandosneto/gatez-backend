@@ -1,4 +1,4 @@
-import { Puzzle } from ".prisma/client";
+import { Puzzle } from "../generated/prisma/client";
 
 export type PuzzleMetadata = Omit<Puzzle, "data" | "difficulty"> & {
   completed: boolean;

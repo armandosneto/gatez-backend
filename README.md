@@ -13,14 +13,14 @@ The game works offline with only the official levels (from a bundled snapshot). 
 
 ## Stack
 
-Node.js + TypeScript, Express 4, Prisma 3 with SQLite, `jsonwebtoken` + `bcryptjs` for auth, `express-validator` for input validation.
+Node.js + TypeScript, Express 5, Prisma 7 with SQLite (through the `better-sqlite3` driver adapter), `jsonwebtoken` + `bcryptjs` for auth, `express-validator` for input validation, `tsx` for development.
 
 ## Quick start
 
-Requirements: Node.js 16+ (developed on v16.15.1) and Yarn 1 (`npm install -g yarn`).
+Requirements: Node.js 20.19+ (tested on 22) and Yarn 1 (`npm install -g yarn`).
 
 ```bash
-yarn                 # install dependencies (also generates the Prisma client)
+yarn                 # install dependencies and generate the Prisma client (src/generated/)
 echo 'JWT_KEY="change-me"' > .env
 yarn dev             # http://localhost:15001, restarts on file changes
 ```
@@ -37,6 +37,7 @@ The game expects the server at `http://localhost:15001` (see the front-end [docs
 | ----------------- | -------- | ------- | ---------------------------------------------------------------- |
 | `JWT_KEY`         | yes      | —       | Secret used to sign the JWTs.                                    |
 | `NODE_ENV`        | no       | `dev`   | Only printed on startup; there is no production mode yet.        |
+| `DATABASE_URL`    | no       | `file:<project>/src/database/shapez_gates_db.sqlite` | SQLite file to use. The default-database copy on first run only applies to the default path. |
 | `LOG_SQL`         | no       | `false` | `true` logs every SQL query Prisma runs, with timing.            |
 | `REPORTS_TO_HIDE` | no       | `10`    | Number of open or legit reports that hides a puzzle automatically. |
 | `REPORTS_TO_BAN`  | no       | `5`     | Legit reports against a user's puzzles that trigger an automatic 100-day ban. |
@@ -47,14 +48,16 @@ The game expects the server at `http://localhost:15001` (see the front-end [docs
 
 | Command                   | What it does                                    |
 | ------------------------- | ----------------------------------------------- |
-| `yarn dev`                | Runs `src/server.ts` with `ts-node-dev` (watch) |
-| `yarn build`              | Compiles to `dist/` with `tsc`                  |
+| `yarn dev`                | Runs `src/server.ts` with `tsx watch`           |
+| `yarn build`              | Generates the Prisma client and compiles to `dist/` |
+| `yarn start`              | Runs the compiled server                        |
 | `yarn prisma studio`      | Opens a browser UI for the database             |
 | `yarn prisma migrate dev` | Applies/creates migrations                      |
 
 ## Project layout
 
 ```
+prisma.config.ts         Prisma CLI config (schema, migrations, database URL)
 prisma/
   schema.prisma          data model (see docs/DATA_MODEL.md)
   migrations/            migration history
@@ -68,6 +71,8 @@ src/
   Models/                shared TypeScript types (UserRole, pagination, puzzle DTOs)
   Errors/                AppError + ErrorType enum (error codes the front-end translates)
   utils/                 difficulty/trophy formulas, time helpers
+  prisma/                Prisma client + database URL
+  generated/prisma/      generated Prisma client (git-ignored, created by `prisma generate`)
   defaultDatabase/       SQLite file with the official levels, copied on first run
   database/              the live database (git-ignored)
 ```
@@ -84,7 +89,7 @@ Request flow: `Route → (ensureAuthenticated → ensureHasRole → express-vali
 
 -   Fix the bugs listed in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md);
 -   Tests covering every endpoint;
--   Upgrade dependencies (Prisma 3 → current) and add a Dockerfile;
+-   A Dockerfile;
 -   Token expiration, rate limiting, e-mail and password recovery;
 -   Validate submitted puzzles and solutions on the server;
 -   Profanity checks on submitted text;
