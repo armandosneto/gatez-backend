@@ -51,7 +51,8 @@ The game expects the server at `http://localhost:15001` (see the front-end [docs
 
 | Command                   | What it does                                    |
 | ------------------------- | ----------------------------------------------- |
-| `yarn dev`                | Runs `src/server.ts` with `tsx watch`           |
+| `yarn dev`                | Prepares the database (copies the default one if missing, applies pending migrations) and runs `src/server.ts` with `tsx watch` |
+| `yarn db:prepare`         | Only the database preparation step              |
 | `yarn build`              | Generates the Prisma client and compiles to `dist/` |
 | `yarn start`              | Runs the compiled server                        |
 | `yarn test`               | Runs the test suite (Vitest + Supertest) on a temporary copy of the default database |

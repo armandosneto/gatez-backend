@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "license": "MIT",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "yarn db:prepare && tsx watch src/server.ts",
+    "db:prepare": "tsx src/scripts/prepareDatabase.ts && prisma migrate deploy",
     "build": "prisma generate && tsc",
     "start": "node dist/server.js",
     "test": "vitest run",

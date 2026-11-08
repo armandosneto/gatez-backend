@@ -13,6 +13,7 @@ import { puzzleTranslationService } from "./PuzzleTranslationService";
 import { userService } from "./UserService";
 import { PaginationRequest, queryPaginationResult } from "../Models/Pagination";
 import { iconKeyFromPuzzleData, iconKeyPrefix } from "../utils/puzzleIcon";
+import { AppError, ErrorType } from "../Errors";
 
 // Keep in sync with frontend
 type Category = "official" | "top-rated" | "new" | "easy" | "medium" | "hard" | "mine" | "completed";
@@ -36,6 +37,7 @@ class PuzzleService {
       where: {
         user: null,
       },
+      orderBy: { order: "asc" },
     });
   }
 
@@ -75,7 +77,8 @@ class PuzzleService {
             user: null,
           },
           userId,
-          locale
+          locale,
+          { order: "asc" }
         );
 
       case "completed":
@@ -313,24 +316,24 @@ class PuzzleService {
     userId: string,
     locale: string
   ) {
-    const lastFinishedOfficialPuzzle = await this._findLastFinishedOfficialPuzzle(userId);
+    const maxPlayableOrder = await this._findMaxPlayableOrder(userId);
     const translation = await puzzleTranslationService.findApprovedTranslation(puzzle.id, locale);
 
-    return this._buildPlayPuzzleObject(puzzle, puzzle.completionsData[0], translation, lastFinishedOfficialPuzzle);
+    return this._buildPlayPuzzleObject(puzzle, puzzle.completionsData[0], translation, maxPlayableOrder);
   }
 
   private async _buildPlayPuzzleObject(
     puzzle: Puzzle,
     completeData: PuzzleCompleteData | null | undefined,
     translation: PuzzleTranslation | null | undefined,
-    lastFinishedOfficialPuzzle: number
+    maxPlayableOrder: number
   ): Promise<PuzzleFullData> {
     const { data, ...metaData } = puzzle;
     let difficultyRating: string | null = null;
     let canPlay = true;
 
     if (puzzle.author === null) {
-      canPlay = puzzle.id <= lastFinishedOfficialPuzzle;
+      canPlay = puzzle.order !== null && puzzle.order <= maxPlayableOrder;
     }
 
     if (completeData?.difficultyRating != null) {
@@ -378,6 +381,39 @@ class PuzzleService {
       }
     }
     return upgraded;
+  }
+
+  /**
+   * Places a puzzle in the official campaign at the given position (1 = first level), turning it into an
+   * official puzzle if needed. Other official puzzles are renumbered so positions stay 1..n without gaps.
+   */
+  async setOfficialPosition(puzzleId: number, position: number): Promise<Puzzle[]> {
+    return client.$transaction(async (tx) => {
+      const puzzle = await tx.puzzle.findUnique({ where: { id: puzzleId } });
+      if (!puzzle) {
+        throw new AppError("Puzzle not found", 404, ErrorType.PuzzleNotFound);
+      }
+
+      const others = await tx.puzzle.findMany({
+        where: { author: null, id: { not: puzzleId } },
+        orderBy: { order: "asc" },
+        select: { id: true },
+      });
+
+      const index = Math.min(Math.max(position, 1), others.length + 1) - 1;
+      const ids = others.map((it) => it.id);
+      ids.splice(index, 0, puzzleId);
+
+      await tx.puzzle.update({
+        where: { id: puzzleId },
+        data: { author: null, authorName: "official" },
+      });
+      for (let i = 0; i < ids.length; i++) {
+        await tx.puzzle.update({ where: { id: ids[i] }, data: { order: i + 1 } });
+      }
+
+      return tx.puzzle.findMany({ where: { author: null }, orderBy: { order: "asc" } });
+    });
   }
 
   async hidePuzzle(puzzleId: number): Promise<PuzzleSimpleData> {
@@ -465,7 +501,7 @@ class PuzzleService {
       take: 500,
     });
 
-    const lastFinishedOfficialPuzzle = await this._findLastFinishedOfficialPuzzle(userId);
+    const maxPlayableOrder = await this._findMaxPlayableOrder(userId);
 
     return Promise.all(
       puzzles.map(async (puzzle) => {
@@ -474,20 +510,20 @@ class PuzzleService {
             puzzle,
             puzzle.completionsData[0],
             puzzle.translations[0],
-            lastFinishedOfficialPuzzle
+            maxPlayableOrder
           )
         ).meta;
       })
     );
   }
 
-  // Returns the highest official puzzle id the user can play: the first official puzzle after the
-  // last one they completed, or the last completed one if there is nothing after it
-  private async _findLastFinishedOfficialPuzzle(userId: string): Promise<number> {
-    const result: [{ id: number | bigint | null }] = await client.$queryRaw`
+  // Returns the highest campaign position (`order`) the user can play: the first official puzzle after
+  // the furthest one they completed, or that one itself if there is nothing after it
+  private async _findMaxPlayableOrder(userId: string): Promise<number> {
+    const result: [{ playable: number | bigint | null }] = await client.$queryRaw`
 WITH last_completed AS (
   SELECT
-    MAX(pcd.puzzleId) AS id
+    MAX(p0."order") AS position
   FROM
     puzzle_complete_data pcd
     INNER JOIN puzzles p0 ON p0.id = pcd.puzzleId
@@ -500,25 +536,27 @@ SELECT
   COALESCE(
     (
       SELECT
-        MIN(p.id)
+        MIN(p."order")
       FROM
         puzzles p
       WHERE
         p.author IS NULL
-        AND p.id > (SELECT id FROM last_completed)
+        AND p.hiddenAt IS NULL
+        AND p."order" > (SELECT position FROM last_completed)
     ),
-    (SELECT id FROM last_completed),
+    (SELECT position FROM last_completed),
     (
       SELECT
-        MIN(p.id)
+        MIN(p."order")
       FROM
         puzzles p
       WHERE
         p.author IS NULL
+        AND p.hiddenAt IS NULL
     )
-  ) AS id`;
+  ) AS playable`;
 
-    return Number(result[0].id ?? 0);
+    return Number(result[0].playable ?? 0);
   }
 
   private _calculateNewAverage(oldAverage: number | null, oldTotal: number, newValue: number | null): number | null {

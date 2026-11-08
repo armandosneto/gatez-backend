@@ -33,7 +33,8 @@ erDiagram
 
 | Column                                 | Notes                                                                                     |
 | -------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `id`                                   | autoincrement. For official puzzles, the order of `id` **is the campaign order**.         |
+| `id`                                   | autoincrement                                                                              |
+| `order`                                | position in the official campaign (1..n); `null` for community puzzles                    |
 | `author` / `authorName`                | `author = null` ⇒ official puzzle (`authorName = "official"`)                             |
 | `shortKey`                             | icon key `io:<inputs>:<outputs>`, computed from `data` (older puzzles had a shapez shape and are converted on startup) |
 | `title`, `description`, `locale`       | in the original language; `description` may contain `<br>`                                |
@@ -87,7 +88,9 @@ Each has an approved `pt-BR` translation.
 ### Workflow to change or add an official level
 
 1. Create the puzzle in the game's puzzle editor and upload it (it will be a community puzzle authored by you).
-2. In the database, set its `author` to `NULL` and `authorName` to `official`. Because campaign order follows `id`, insert levels in the right order (or renumber ids, updating `puzzle_complete_data`, `puzzle_reports` and `puzzle_translations`).
+2. As an admin, call `PUT /v1/moderation/official/:puzzleId` with `{ "position": n }`. The puzzle becomes official (`author = NULL`, `authorName = "official"`) at position `n`; the other levels are renumbered. The same call moves an existing official level.
 3. Add translations via `POST /v1/puzzles/translate/:id` and approve them.
 4. Copy the database to `src/defaultDatabase/` so new installs get it.
-5. Call `GET /v1/puzzles/officialSnapshot` as an admin and save the response over the front-end's `src/js/platform/offlineFallback/officialLevelsDownload.json`, so offline players get the same levels.
+5. Call `GET /v1/puzzles/officialSnapshot` as an admin and save the response over the front-end's `src/js/platform/offlineFallback/officialLevelsDownload.json`, so offline players get the same levels (remove `hiddenAt`/`hiddenById` from each `meta`).
+
+Progression: a player can play every official level up to the first one after the furthest level they completed (by `order`).

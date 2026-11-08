@@ -64,6 +64,14 @@ router.put(
   moderationController.changeUserRole
 );
 
+router.put(
+  "/official/:puzzleId",
+  ensureHasRole(UserRole.admin),
+  body("position").isInt({ min: 1 }).toInt(),
+  checkForErrors,
+  moderationController.setOfficialPosition
+);
+
 router.get("/hidePuzzle", ensureHasRole(UserRole.admin), paginated, moderationController.listHiddenPuzzles);
 router.put("/hidePuzzle/:puzzleId", ensureHasRole(UserRole.admin), moderationController.hidePuzzle);
 router.put("/hidePuzzle/undo/:puzzleId", ensureHasRole(UserRole.admin), moderationController.unhidePuzzle);

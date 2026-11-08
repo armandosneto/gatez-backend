@@ -106,6 +106,14 @@ class ModerationController {
     return response.json(removeSensitiveData(await userService.changeRole(userId, newRole)));
   }
 
+  async setOfficialPosition(request: Request, response: Response) {
+    const puzzleId = +(request.params.puzzleId as string);
+    const { position } = request.body as { position: number };
+
+    const official = await puzzleService.setOfficialPosition(puzzleId, position);
+    return response.json(official.map(({ id, order, title }) => ({ id, order, title })));
+  }
+
   async listHiddenPuzzles(_: Request, response: Response) {
     const pagination = response.locals.pagination as PaginationRequest;
 

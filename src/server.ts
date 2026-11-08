@@ -5,20 +5,11 @@ process.env.NODE_ENV ??= "dev";
 
 import { app } from "./app";
 import { puzzleService } from "./Services/PuzzleService";
-import { copyFileSync, mkdirSync, existsSync } from "fs";
-import { databaseHome, databaseName, defaultDatabaseHome } from "./prisma/databaseUrl";
+import { prepareDatabase } from "./prisma/prepareDatabase";
 
 const port = +(process.env.PORT ?? 15001);
 
-if (!existsSync(databaseHome)) {
-  console.log("Database directory was not present. Creating");
-  mkdirSync(databaseHome);
-}
-
-if (!existsSync(`${databaseHome}/${databaseName}`)) {
-  console.log("Database file was not present. Coping the default one to the directory");
-  copyFileSync(`${defaultDatabaseHome}/${databaseName}`, `${databaseHome}/${databaseName}`);
-}
+prepareDatabase();
 
 // Data upgrades that need code (not just SQL migrations)
 puzzleService.upgradeLegacyIcons().then((upgraded) => {

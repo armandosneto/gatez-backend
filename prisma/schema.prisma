@@ -63,6 +63,8 @@ model Puzzle {
   user                    User?                @relation(name: "puzzleAuthor", fields: [author], references: [id], onDelete: Restrict)
   author                  String?
   authorName              String               @default("official")
+  // Position in the official campaign (official puzzles only, null for community puzzles)
+  order                   Int?
   data                    String
   description             String
   afterCompletingMessage  String?
@@ -78,6 +80,7 @@ model Puzzle {
   puzzleReports           PuzzleReport[]
   translations            PuzzleTranslation[]
 
+  @@index([order])
   @@map("puzzles")
 }
 

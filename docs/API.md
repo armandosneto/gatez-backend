@@ -83,7 +83,7 @@ Returned by list/search (without `description`) and inside `download` (as `meta`
 }
 ```
 
-**Official puzzle progression:** official puzzles (`author = null`) are unlocked in `id` order. A user can play every official puzzle with `id` ≤ the first official puzzle after the highest one they have completed (see `_findLastFinishedOfficialPuzzle` in `PuzzleService.ts`).
+**Official puzzle progression:** official puzzles (`author = null`) are unlocked in campaign order (the `order` column). A user can play every official puzzle up to the first one after the furthest one they have completed (see `_findMaxPlayableOrder` in `PuzzleService.ts`). The `official` list is sorted by `order`.
 
 ### `GET /v1/puzzles/list/:category`
 
@@ -190,6 +190,7 @@ Returns every official puzzle as `{ [id]: { game, meta } }`, with statistics res
 | GET    | `/v1/moderation/ban/:userId`              | — _paginated_, ban history of a user        |
 | GET    | `/v1/moderation/ban`                      | — _paginated_, active bans                  |
 | PUT    | `/v1/moderation/userRole/:userId`         | `{ "newRole": 0 \| 1 \| 2 }`                |
+| PUT    | `/v1/moderation/official/:puzzleId`       | `{ "position": n }` — makes the puzzle official at position `n` (1-based) or moves it; other levels are renumbered. Returns the campaign `[{ id, order, title }]` |
 | GET    | `/v1/moderation/hidePuzzle`               | — _paginated_, hidden puzzles               |
 | PUT    | `/v1/moderation/hidePuzzle/:puzzleId`     | — hides a puzzle                            |
 | PUT    | `/v1/moderation/hidePuzzle/undo/:puzzleId` | — unhides a puzzle                         |
