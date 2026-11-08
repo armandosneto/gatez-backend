@@ -236,7 +236,10 @@ class PuzzleService {
   ): Promise<{ completeData: PuzzleCompleteData; trophies: number | undefined }> {
     const puzzleId = puzzle.id;
 
-    const previousCompleteData = (await puzzleCompleteDataService.getByPuzzleAndUser(puzzleId, user.id))!;
+    // The complete data row is normally created when the puzzle is downloaded
+    const previousCompleteData =
+      (await puzzleCompleteDataService.getByPuzzleAndUser(puzzleId, user.id)) ??
+      (await puzzleCompleteDataService.create(puzzle, user.id));
 
     await puzzleCompleteDataService.update(puzzleId, user.id, {
       timeTaken: time,

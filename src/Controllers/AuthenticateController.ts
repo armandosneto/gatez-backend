@@ -28,6 +28,7 @@ class AuthenticateController {
 
     const token = sign({}, process.env.JWT_KEY as string, {
       subject: user.id,
+      expiresIn: process.env.JWT_EXPIRES_IN ?? "30d",
     });
 
     const data = {

@@ -1,9 +1,11 @@
+const msPerDay = 24 * 60 * 60 * 1000;
+
 export function msToDays(milisseconds: number): number {
-  return Math.ceil(milisseconds / (24 * 60 * 1000));
+  return Math.ceil(milisseconds / msPerDay);
 }
 
 export function daystoMs(days: number): number {
-  return days * 24 * 60 * 1000;
+  return days * msPerDay;
 }
 
 export function addDays(date: Date, days: number) {

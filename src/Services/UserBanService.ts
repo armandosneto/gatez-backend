@@ -96,7 +96,7 @@ class UserBanService {
 
     return queryPaginationResult(pagination, client.userBan.count, client.userBan.findMany, {
       where: {
-        lifted: false,
+        liftedAt: null,
         expiresAt: {
           gt: new Date(),
         },

@@ -5,7 +5,7 @@ Base URL (dev): `http://localhost:15001`. All routes are prefixed with `/v1`.
 ## Conventions
 
 -   **Body format:** JSON (`Content-Type: application/json`).
--   **Authentication:** `Authorization: Bearer <jwt>`. The token is returned by `POST /v1/login`. Tokens are signed with `JWT_KEY` and currently **never expire**.
+-   **Authentication:** `Authorization: Bearer <jwt>`. The token is returned by `POST /v1/login`. Tokens are signed with `JWT_KEY` and expire after `JWT_EXPIRES_IN` (default 30 days).
 -   **Locale:** every route accepts an optional `?locale=<code>` query parameter (see `supportedLocales` in `src/Services/PuzzleTranslationService.ts`). Unknown or missing locales fall back to `en`. It is used to return approved puzzle translations and to tag submitted puzzles.
 -   **Pagination** (only on routes marked _paginated_): `?page=<n>` (0-based, default `0`) and `?pageSize=<n>` (default `20`). Paginated responses look like:
 
@@ -102,7 +102,7 @@ Returned by list/search (without `description`) and inside `download` (as `meta`
 ### `GET /v1/puzzles/download/:puzzleId`
 
 Returns `{ "game": "<compressed puzzle data>", "meta": { ...metadata, "difficultyRating": "easy" | null } }`.
-Side effects: increments `downloads` and creates the user's `PuzzleCompleteData` row if it doesn't exist yet. **The game must download a puzzle before completing it.**
+Side effects: increments `downloads` and creates the user's `PuzzleCompleteData` row if it doesn't exist yet.
 
 `game` is the serialized puzzle (see the front-end `docs/PUZZLES.md`), compressed with the game's own compression.
 
@@ -165,15 +165,15 @@ Returns every official puzzle as `{ [id]: { game, meta } }`, with statistics res
 
 | Method | Route                                       | Role      | Notes                                       |
 | ------ | ------------------------------------------- | --------- | ------------------------------------------- |
-| GET    | `/v1/moderation/translations`               | any user  | _paginated_ — pending translations          |
-| PUT    | `/v1/moderation/translations/:translationId` | moderator | body `{ "approved": boolean }`             |
+| GET    | `/v1/moderation/translations`               | moderator | _paginated_ — pending translations          |
+| PUT    | `/v1/moderation/translations/:translationId` | moderator | body `{ "approved": boolean }`; `404 TranslationNotFound` |
 
 ### Reports
 
 | Method | Route                              | Role      | Notes                                                                       |
 | ------ | ---------------------------------- | --------- | --------------------------------------------------------------------------- |
-| GET    | `/v1/moderation/reports`           | moderator | _paginated_; query `puzzleId`, `userId`, `reviewed` (`true`/`false`)        |
-| PUT    | `/v1/moderation/reports/:reportId` | moderator | body `{ "legit": boolean, "reviewNotes": string }`                          |
+| GET    | `/v1/moderation/reports`           | moderator | _paginated_; optional filters `puzzleId` (int), `userId` (uuid), `reviewed` (`true`/`false`, omitted = all) |
+| PUT    | `/v1/moderation/reports/:reportId` | moderator | body `{ "legit": boolean, "reviewNotes": string }`. When the puzzle author reaches `REPORTS_TO_BAN` legit reports, they are banned for 100 days. |
 
 ### Admin
 

@@ -6,7 +6,7 @@ process.env.NODE_ENV ??= "dev";
 import { app } from "./app";
 import { copyFileSync, mkdirSync, existsSync } from "fs";
 
-const port = 15001;
+const port = +(process.env.PORT ?? 15001);
 const databaseHome = "./src/database";
 const defaultDatabaseHome = "./src/defaultDatabase";
 const databaseName = "shapez_gates_db.sqlite";

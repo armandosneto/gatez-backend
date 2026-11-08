@@ -142,7 +142,7 @@ class PuzzleTranslationService {
     });
 
     if (exists === 0) {
-      throw new AppError("Puzzle does not exist!", 404, ErrorType.PuzzleNotFound);
+      throw new AppError("Translation does not exist!", 404, ErrorType.TranslationNotFound);
     }
 
     return client.puzzleTranslation.update({
@@ -165,7 +165,7 @@ class PuzzleTranslationService {
 
     return queryPaginationResult(pagination, client.puzzleTranslation.count, client.puzzleTranslation.findMany, {
       where: {
-        approved: true,
+        approved: false,
         reviewedAt: null,
       },
       orderBy,

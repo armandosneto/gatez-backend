@@ -6,7 +6,7 @@ import { AppError, ErrorType } from "../Errors";
 import { userBanService } from "./UserBanService";
 
 const reports_to_hide = +(process.env.REPORTS_TO_HIDE ?? 10);
-const reports_to_ban = +(process.env.REPORTS_TO_HIDE ?? 5);
+const reports_to_ban = +(process.env.REPORTS_TO_BAN ?? 5);
 
 class PuzzleReportService {
   async reportPuzzle(puzzleId: number, userId: string, reason: string): Promise<PuzzleReport> {
@@ -68,15 +68,18 @@ class PuzzleReportService {
   // TODO add a explicit type
   async listReports(
     pagination: PaginationRequest,
-    puzzleId: string | undefined,
+    puzzleId: number | undefined,
     userId: string | undefined,
     reviewed: boolean | undefined
   ) {
-    const where = {
+    const where: Prisma.PuzzleReportWhereInput = {
       puzzleId,
       userId,
-      reviewedAt: reviewed ? { not: null } : null,
-    } as Prisma.PuzzleReportWhereInput;
+    };
+
+    if (reviewed !== undefined) {
+      where.reviewedAt = reviewed ? { not: null } : null;
+    }
 
     const orderBy = {
       createdAt: "asc",
@@ -162,21 +165,34 @@ you find a problem with an official puzzle, please open an issue on the github p
       throw new AppError("You can't respond to a report on yourself!", 422, ErrorType.CantJudgeOwnReport);
     }
 
-    if ((await this._validReportsCount(reportedUser.id)) >= reports_to_ban) {
-      userBanService.banUser(
-        reportedUser,
-        "User has surpassed the number of allowed legit puzzle reports",
-        moderator,
-        100
-      );
-    }
-
-    return client.puzzleReport.update({
+    const updatedReport = await client.puzzleReport.update({
       where: {
         id,
       },
       data,
     });
+
+    if (legit) {
+      await this._banIfTooManyLegitReports(reportedUser, moderator);
+    }
+
+    return updatedReport;
+  }
+
+  private async _banIfTooManyLegitReports(reportedUser: User, moderator: User): Promise<void> {
+    if ((await this._legitReportsAgainstAuthorCount(reportedUser.id)) < reports_to_ban) {
+      return;
+    }
+    if (await userBanService.getActiveForUser(reportedUser.id)) {
+      return;
+    }
+
+    await userBanService.banUser(
+      reportedUser,
+      "User has surpassed the number of allowed legit puzzle reports",
+      moderator,
+      100
+    );
   }
 
   private _validOrSuspectedReportsCount(puzzleId: number): Promise<number> {
@@ -195,11 +211,14 @@ you find a problem with an official puzzle, please open an issue on the github p
     });
   }
 
-  private _validReportsCount(userId: string): Promise<number> {
+  // Counts legit reports made against puzzles authored by the given user
+  private _legitReportsAgainstAuthorCount(authorId: string): Promise<number> {
     return client.puzzleReport.count({
       where: {
-        userId,
         legit: true,
+        puzzle: {
+          author: authorId,
+        },
       },
     });
   }

@@ -9,6 +9,7 @@ export enum ErrorType {
   BanUserAlreadyBanned,
   YouAreBanned,
   PuzzleNotFound,
+  TranslationNotFound,
   PuzzleAlreadyTranslated,
   PuzzleAlreadyInLocale,
   LocaleNotSupported,

@@ -36,7 +36,12 @@ class ModerationController {
     };
 
     return response.json(
-      await puzzleReportService.listReports(pagination, puzzleId, userId, reviewed ? reviewed === "true" : undefined)
+      await puzzleReportService.listReports(
+        pagination,
+        puzzleId !== undefined ? +puzzleId : undefined,
+        userId,
+        reviewed !== undefined ? reviewed === "true" : undefined
+      )
     );
   }
 

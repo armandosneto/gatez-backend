@@ -14,7 +14,7 @@ export function createPaginationResult<T>(
   records: T[],
   total: number
 ): PaginationResponse<T> {
-  const totalPages = total === 0 ? 0 : Math.floor(total / pagination.pageSize) + 1;
+  const totalPages = Math.ceil(total / pagination.pageSize);
 
   return {
     ...pagination,

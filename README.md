@@ -25,7 +25,7 @@ echo 'JWT_KEY="change-me"' > .env
 yarn dev             # http://localhost:15001, restarts on file changes
 ```
 
-On the first run, if `src/database/shapez_gates_db.sqlite` doesn't exist, the server copies `src/defaultDatabase/shapez_gates_db.sqlite` there. That default database has no users and contains the **26 official levels** (in English, with pt-BR translations), from "Welcome" to "JK Flip Flop".
+The default port is 15001 (configurable with `PORT`). On the first run, if `src/database/shapez_gates_db.sqlite` doesn't exist, the server copies `src/defaultDatabase/shapez_gates_db.sqlite` there. That default database has no users and contains the **26 official levels** (in English, with pt-BR translations), from "Welcome" to "JK Flip Flop".
 
 To start with an empty database instead, run `yarn prisma migrate dev`.
 
@@ -39,6 +39,9 @@ The game expects the server at `http://localhost:15001` (see the front-end [docs
 | `NODE_ENV`        | no       | `dev`   | Only printed on startup; there is no production mode yet.        |
 | `LOG_SQL`         | no       | `false` | `true` logs every SQL query Prisma runs, with timing.            |
 | `REPORTS_TO_HIDE` | no       | `10`    | Number of open or legit reports that hides a puzzle automatically. |
+| `REPORTS_TO_BAN`  | no       | `5`     | Legit reports against a user's puzzles that trigger an automatic 100-day ban. |
+| `JWT_EXPIRES_IN`  | no       | `30d`   | Token lifetime ([`ms`](https://github.com/vercel/ms) format, e.g. `12h`, `7d`). |
+| `PORT`            | no       | `15001` | HTTP port. |
 
 ### Scripts
 

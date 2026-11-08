@@ -77,7 +77,7 @@ class UserService {
   }
 
   async changeRole(userId: string, newRole: UserRole): Promise<User> {
-    const user = this.get(userId);
+    const user = await this.get(userId);
     if (!user) {
       throw new AppError("User not found!", 404, ErrorType.UserNotFound);
     }
