@@ -1,45 +1,98 @@
-# shapez.io-gates-backend
+# Gatez back-end
 
-This is the back-end project for Gatez (provisory name), a Shapez fork (https://github.com/RafRunner/shapez.io) focusing on the puzzle aspect of the DLC, but using logic gates, where the objective is to build more and more complex circuits, learning logic and how computers work.
+REST API for [Gatez](https://github.com/RafRunner/Gatez), a fork of shapez.io that turns the puzzle DLC into a game about logic gates and digital circuits.
 
-This makes the modified Puzzle Mode work, enabling it's consumers to create users, login, get Puzzles, upload and delete their Puzzles and update their Puzzle solutions.
+The game works offline with only the official levels (from a bundled snapshot). This server adds:
 
-## Endpoint documentation
+-   user accounts (name + password, JWT auth);
+-   the official level list, unlocked in order as the player progresses;
+-   uploading, playing, searching, liking, rating and reporting community puzzles;
+-   per-puzzle statistics (completions, average time, computed difficulty) and trophies;
+-   community translations of puzzle titles/descriptions, with moderation;
+-   moderation tools (roles, bans, hiding puzzles), API-only for now.
 
-Coming soon
+## Stack
 
-## How to build
+Node.js + TypeScript, Express 4, Prisma 3 with SQLite, `jsonwebtoken` + `bcryptjs` for auth, `express-validator` for input validation.
 
-Your need `node` (at least version v16.15.1) and `yarn` (version v1.22.19) installed. To install `yarn` globally run `npm install -g yarn` . Install the needed dependencies running `yarn` in the root directory. We plan on adding a Dokerfile to standardize building (and running) the project in the near future.
+## Quick start
 
-## How to run
+Requirements: Node.js 16+ (developed on v16.15.1) and Yarn 1 (`npm install -g yarn`).
 
-Run the server in dev mode by running `yarn dev` in the root of the project. By default the server will listen on port 15001 and all changes will trigger a restart. A default database containing the premade (official) levels will be copied to the correct database directory. If you do not wish to use it, create a fresh database by running `yarn prisma migrate dev`. These premade levels are only available in English and Brazilian Portuguese for now, but we'll work on a way so that users can suggest and help with translations.
+```bash
+yarn                 # install dependencies (also generates the Prisma client)
+echo 'JWT_KEY="change-me"' > .env
+yarn dev             # http://localhost:15001, restarts on file changes
+```
 
-You'll also need to create a .env file in the project root. It must contain a JWT token key, in the form:
+On the first run, if `src/database/shapez_gates_db.sqlite` doesn't exist, the server copies `src/defaultDatabase/shapez_gates_db.sqlite` there. That default database has no users and contains the **26 official levels** (in English, with pt-BR translations), from "Welcome" to "JK Flip Flop".
 
-    JWT_KEY = "any key here"
+To start with an empty database instead, run `yarn prisma migrate dev`.
 
-The application will run in "dev" env by default. You can change this by setting:
+The game expects the server at `http://localhost:15001` (see the front-end [docs/DEVELOPMENT.md](https://github.com/RafRunner/Gatez/blob/master/docs/DEVELOPMENT.md)).
 
-    NODE_ENV = "prod" # changing this value doen't change anything for now
+### Environment variables (`.env`)
 
-There is no production mode for now.
+| Variable          | Required | Default | Description                                                      |
+| ----------------- | -------- | ------- | ---------------------------------------------------------------- |
+| `JWT_KEY`         | yes      | —       | Secret used to sign the JWTs.                                    |
+| `NODE_ENV`        | no       | `dev`   | Only printed on startup; there is no production mode yet.        |
+| `LOG_SQL`         | no       | `false` | `true` logs every SQL query Prisma runs, with timing.            |
+| `REPORTS_TO_HIDE` | no       | `10`    | Number of open or legit reports that hides a puzzle automatically. |
 
- If you wish to log all SQL executed by the prisma client, you can change this by setting:
+### Scripts
 
-    LOG_SQL = true
+| Command                   | What it does                                    |
+| ------------------------- | ----------------------------------------------- |
+| `yarn dev`                | Runs `src/server.ts` with `ts-node-dev` (watch) |
+| `yarn build`              | Compiles to `dist/` with `tsc`                  |
+| `yarn prisma studio`      | Opens a browser UI for the database             |
+| `yarn prisma migrate dev` | Applies/creates migrations                      |
 
-## Future features/improvements in probable order of implementation:
+## Project layout
 
--   Refactor and improve the code in general;
--   Write tests at least covering all endpoints;
--   Improving security and performance;
--   Implement profanity checks on submitted content and block potentially offensive texts;
--   Implement pagination on puzzle requests; // May not be necessary
--   Check if the user submitted puzzle is a valid one and if sumitted solutions are valid;
--   Deploy the application;
+```
+prisma/
+  schema.prisma          data model (see docs/DATA_MODEL.md)
+  migrations/            migration history
+src/
+  server.ts              entry point: loads .env, prepares the database file, listens on :15001
+  app.ts                 Express app: json, helmet, cors, locale middleware, routes, error handler
+  Routes/                routers per area (login, user, puzzles, moderation)
+  Controllers/           read the request, call services, shape the response
+  Services/              business logic and Prisma queries
+  middlewares/           auth (JWT), role check, pagination, locale, validation errors
+  Models/                shared TypeScript types (UserRole, pagination, puzzle DTOs)
+  Errors/                AppError + ErrorType enum (error codes the front-end translates)
+  utils/                 difficulty/trophy formulas, time helpers
+  defaultDatabase/       SQLite file with the official levels, copied on first run
+  database/              the live database (git-ignored)
+```
+
+Request flow: `Route → (ensureAuthenticated → ensureHasRole → express-validator → checkForErrors → paginated) → Controller → Service → Prisma`. Any thrown `AppError` is turned into `{ status, message, error }` by the handler in `app.ts`; anything else becomes a 500.
+
+## Documentation
+
+-   [docs/API.md](docs/API.md) — every endpoint, payload and error convention
+-   [docs/DATA_MODEL.md](docs/DATA_MODEL.md) — tables, relationships and how the official levels are stored
+-   [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md) — bugs and security gaps found in review
+
+## Roadmap
+
+-   Fix the bugs listed in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md);
+-   Tests covering every endpoint;
+-   Upgrade dependencies (Prisma 3 → current) and add a Dockerfile;
+-   Token expiration, rate limiting, e-mail and password recovery;
+-   Validate submitted puzzles and solutions on the server;
+-   Profanity checks on submitted text;
+-   Pagination on puzzle lists (currently capped at 500);
+-   A moderation UI;
+-   Deploy.
+
+## Authors
+
+Rafael Santana and Armando Soares e Silva Neto.
 
 ## License
 
-This software is licensed under the MIT open source license. Feel free to use and contribute to the project!
+MIT — see [LICENSE](LICENSE).
