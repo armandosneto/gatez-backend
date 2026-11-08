@@ -12,6 +12,7 @@ import { difficultyLabels } from "../utils/difficultyUtil";
 import { puzzleTranslationService } from "./PuzzleTranslationService";
 import { userService } from "./UserService";
 import { PaginationRequest, queryPaginationResult } from "../Models/Pagination";
+import { iconKeyFromPuzzleData, iconKeyPrefix } from "../utils/puzzleIcon";
 
 // Keep in sync with frontend
 type Category = "official" | "top-rated" | "new" | "easy" | "medium" | "hard" | "mine" | "completed";
@@ -210,7 +211,8 @@ class PuzzleService {
   ): Promise<Puzzle> {
     return client.puzzle.create({
       data: {
-        shortKey,
+        // The icon is derived from the puzzle itself, the client value is only a fallback
+        shortKey: iconKeyFromPuzzleData(data) ?? shortKey ?? "",
         title,
         data,
         author: author.id,
@@ -357,6 +359,27 @@ class PuzzleService {
     };
   }
 
+  /**
+   * Older puzzles used a random shapez shape as icon. Replaces those with the inputs/outputs icon key.
+   * Runs on startup; it's a no-op once every puzzle was upgraded.
+   */
+  async upgradeLegacyIcons(): Promise<number> {
+    const legacy = await client.puzzle.findMany({
+      where: { NOT: { shortKey: { startsWith: iconKeyPrefix } } },
+      select: { id: true, data: true },
+    });
+
+    let upgraded = 0;
+    for (const puzzle of legacy) {
+      const shortKey = iconKeyFromPuzzleData(puzzle.data);
+      if (shortKey) {
+        await client.puzzle.update({ where: { id: puzzle.id }, data: { shortKey } });
+        upgraded++;
+      }
+    }
+    return upgraded;
+  }
+
   async hidePuzzle(puzzleId: number): Promise<PuzzleSimpleData> {
     const puzzle = await this.update(puzzleId, { hiddenAt: new Date() });
     return this._puzzleSimpleInfo(puzzle);
@@ -458,8 +481,21 @@ class PuzzleService {
     );
   }
 
+  // Returns the highest official puzzle id the user can play: the first official puzzle after the
+  // last one they completed, or the last completed one if there is nothing after it
   private async _findLastFinishedOfficialPuzzle(userId: string): Promise<number> {
-    const id: Promise<[{ id: number }]> = client.$queryRaw`
+    const result: [{ id: number | bigint | null }] = await client.$queryRaw`
+WITH last_completed AS (
+  SELECT
+    MAX(pcd.puzzleId) AS id
+  FROM
+    puzzle_complete_data pcd
+    INNER JOIN puzzles p0 ON p0.id = pcd.puzzleId
+  WHERE
+    pcd.userId = ${userId}
+    AND p0.author IS NULL
+    AND pcd.completedAt IS NOT NULL
+)
 SELECT
   COALESCE(
     (
@@ -468,19 +504,10 @@ SELECT
       FROM
         puzzles p
       WHERE
-        p.id > (
-          SELECT
-            MAX(pcd.puzzleId)
-          FROM
-            puzzle_complete_data pcd
-            INNER JOIN puzzles p0 ON p0.id = pcd.puzzleId
-          WHERE
-            pcd.userId = ${userId}
-            AND p0.author IS NULL
-            AND pcd.completedAt IS NOT NULL
-        )
-        AND p.author IS NULL
+        p.author IS NULL
+        AND p.id > (SELECT id FROM last_completed)
     ),
+    (SELECT id FROM last_completed),
     (
       SELECT
         MIN(p.id)
@@ -489,10 +516,9 @@ SELECT
       WHERE
         p.author IS NULL
     )
-  ) as id`;
+  ) AS id`;
 
-    const result = await id;
-    return result[0].id;
+    return Number(result[0].id ?? 0);
   }
 
   private _calculateNewAverage(oldAverage: number | null, oldTotal: number, newValue: number | null): number | null {

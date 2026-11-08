@@ -20,6 +20,7 @@ Fixed in the commit after the code review:
 -   No rate limiting on login/sign-up (now `RATE_LIMIT_LOGIN` / `RATE_LIMIT_SIGN_UP`).
 -   Submitted puzzles weren't validated (now `src/utils/puzzleValidation.ts`).
 -   No automated tests (now `yarn test`, run in CI).
+-   After completing the **last** official level, the progression query found no "next" level and fell back to "only level 1 unlocked", re-locking the whole campaign.
 
 ## Open: security and production readiness
 

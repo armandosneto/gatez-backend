@@ -10,6 +10,8 @@ describe("official puzzles", () => {
     expect(response.body[0]).toMatchObject({ id: 1, title: "Welcome", authorName: "official", canPlay: true });
     expect(response.body.slice(1).every((puzzle: any) => !puzzle.canPlay)).toBe(true);
     expect(response.body[0].description).toBeUndefined();
+    expect(response.body.every((puzzle: any) => /^io:\d+:\d+$/.test(puzzle.shortKey))).toBe(true);
+    expect(response.body.find((puzzle: any) => puzzle.title === "Half adder").shortKey).toBe("io:2:2");
     // Dates written by Prisma 3 (unix ms) must still be read correctly
     expect(new Date(response.body[0].createdAt).getFullYear()).toBe(2022);
   });
@@ -48,6 +50,16 @@ describe("official puzzles", () => {
 
     const me = await api().get("/v1/login").set(user.auth).expect(200);
     expect(me.body.trophies).toBe(first.body.trophies);
+  });
+
+  it("keeps every level unlocked after completing the last one", async () => {
+    const user = await createUser();
+    for (let id = 1; id <= 26; id++) {
+      await api().post(`/v1/puzzles/complete/${id}`).set(user.auth).send({ time: 10, componentsUsed: 1 }).expect(200);
+    }
+
+    const list = await api().get("/v1/puzzles/list/official").set(user.auth).expect(200);
+    expect(list.body.every((puzzle: any) => puzzle.canPlay && puzzle.completed)).toBe(true);
   });
 
   it("allows completing a puzzle that was not downloaded first", async () => {
@@ -89,6 +101,17 @@ describe("community puzzles", () => {
 
     await api().delete(`/v1/puzzles/delete/${id}`).set(author.auth).expect(200);
     await api().get(`/v1/puzzles/download/${id}`).set(player.auth).expect(404);
+  });
+
+  it("derives the icon from the puzzle inputs and outputs", async () => {
+    const author = await createUser();
+    const id = await submitPuzzle(author, {
+      shortKey: "CuCuCuCu",
+      data: puzzleData({ signals: ["0,1", "1,0", "1,1"], acceptors: ["0,1", "1,1"] }),
+    });
+
+    const download = await api().get(`/v1/puzzles/download/${id}`).set(author.auth).expect(200);
+    expect(download.body.meta.shortKey).toBe("io:3:2");
   });
 
   it("accepts don't care outputs and an optional maximum", async () => {

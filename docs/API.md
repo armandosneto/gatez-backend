@@ -115,7 +115,7 @@ Side effects: increments `downloads` and creates the user's `PuzzleCompleteData`
 }
 ```
 
-Returns `201` with the created puzzle. The puzzle is tagged with the request `locale`.
+Returns `201` with the created puzzle. The puzzle is tagged with the request `locale`. `shortKey` (the icon) is optional and is overwritten with `io:<inputs>:<outputs>`, computed from `data`.
 
 Validation (`400 BadRequest` with the reason in `message`):
 

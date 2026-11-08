@@ -19,7 +19,7 @@ router.post(
   "/submit",
   body("title").isString().matches(puzzleTitleRegex),
   body("description").isString().isLength({ max: 1000 }),
-  body("shortKey").isString().isLength({ min: 1, max: 200 }),
+  body("shortKey").optional().isString().isLength({ max: 200 }),
   body("minimumComponents").isInt({ min: 0 }).toInt(),
   body("maximumComponents")
     .optional({ values: "null" })
