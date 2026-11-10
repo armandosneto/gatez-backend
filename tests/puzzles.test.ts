@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { api, createUser, puzzleData, puzzleSubmission, submitPuzzle } from "./helpers";
+import { api, completePuzzle, createUser, puzzleData, puzzleSubmission, submitPuzzle } from "./helpers";
 
 describe("official puzzles", () => {
   it("lists the 26 official levels, only the first one unlocked for a new user", async () => {
@@ -27,20 +27,10 @@ describe("official puzzles", () => {
 
   it("unlocks the next level and awards trophies only on the first completion", async () => {
     const user = await createUser();
-    await api().get("/v1/puzzles/download/1").set(user.auth).expect(200);
-
-    const first = await api()
-      .post("/v1/puzzles/complete/1")
-      .set(user.auth)
-      .send({ time: 60, liked: true, componentsUsed: 0, difficultyRating: "easy" })
-      .expect(200);
+    const first = await completePuzzle(user, 1, { time: 60, liked: true, difficultyRating: "easy" });
     expect(first.body.trophies).toBeGreaterThan(0);
 
-    const second = await api()
-      .post("/v1/puzzles/complete/1")
-      .set(user.auth)
-      .send({ time: 30, liked: false, componentsUsed: 0, difficultyRating: "easy" })
-      .expect(200);
+    const second = await completePuzzle(user, 1, { time: 30, liked: false, difficultyRating: "easy" });
     expect(second.body.trophies).toBeUndefined();
 
     const list = await api().get("/v1/puzzles/list/official").set(user.auth).expect(200);
@@ -55,25 +45,26 @@ describe("official puzzles", () => {
   it("keeps every level unlocked after completing the last one", async () => {
     const user = await createUser();
     for (let id = 1; id <= 26; id++) {
-      await api().post(`/v1/puzzles/complete/${id}`).set(user.auth).send({ time: 10, componentsUsed: 1 }).expect(200);
+      await completePuzzle(user, id);
     }
 
     const list = await api().get("/v1/puzzles/list/official").set(user.auth).expect(200);
     expect(list.body.every((puzzle: any) => puzzle.canPlay && puzzle.completed)).toBe(true);
   });
 
-  it("allows completing a puzzle that was not downloaded first", async () => {
+  it("rejects completing a puzzle that was not opened first", async () => {
     const user = await createUser();
-    await api().post("/v1/puzzles/complete/1").set(user.auth).send({ time: 10, componentsUsed: 0 }).expect(200);
+    const response = await api()
+      .post("/v1/puzzles/complete/1")
+      .set(user.auth)
+      .send({ time: 10, solution: [] })
+      .expect(400);
+    expect(response.body.error).toBe("PuzzleNotStarted");
   });
 
   it("rejects invalid difficulty ratings and unknown puzzles", async () => {
     const user = await createUser();
-    const invalid = await api()
-      .post("/v1/puzzles/complete/1")
-      .set(user.auth)
-      .send({ time: 10, difficultyRating: "impossible" })
-      .expect(400);
+    const invalid = await completePuzzle(user, 1, { difficultyRating: "impossible" }, 400);
     expect(invalid.body.error).toBe("InvalidDifficulty");
 
     await api().get("/v1/puzzles/download/99999").set(user.auth).expect(404);

@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { client } from "../src/prisma/client";
 import { UserRole } from "../src/Models/UserRole";
-import { api, createUser, submitPuzzle } from "./helpers";
+import { api, completePuzzle, createUser, submitPuzzle } from "./helpers";
 
 describe("campaign order", () => {
   const createdIds: number[] = [];
@@ -33,7 +33,7 @@ describe("campaign order", () => {
     expect(list.body[1]).toMatchObject({ id, authorName: "official", author: null, canPlay: false });
 
     // Completing the first level unlocks the inserted one, not "NOT gate" (which has a lower id)
-    await api().post("/v1/puzzles/complete/1").set(player.auth).send({ time: 10, componentsUsed: 0 }).expect(200);
+    await completePuzzle(player, 1);
     const after = await api().get("/v1/puzzles/list/official").set(player.auth).expect(200);
     expect(after.body.slice(0, 3).map((p: any) => p.canPlay)).toEqual([true, true, false]);
   });

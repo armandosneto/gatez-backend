@@ -126,10 +126,25 @@ Validation (`400 BadRequest` with the reason in `message`):
 ### `POST /v1/puzzles/complete/:puzzleId`
 
 ```json
-{ "time": 142, "liked": true, "componentsUsed": 5, "nandsUsed": 0, "difficultyRating": "medium" }
+{
+    "time": 142,
+    "liked": true,
+    "difficultyRating": "medium",
+    "solution": [{ "id": "logic_gate", "variant": "nand", "x": 0, "y": 0, "r": 0, "rv": 0 }]
+}
 ```
 
-`difficultyRating` is `easy | medium | hard` or omitted/null. Updates the user's completion row, the puzzle's averages, likes and computed difficulty. On the **first** completion the user earns trophies (100 / 200 / 400 for easy / medium / hard).
+`difficultyRating` is `easy | medium | hard` or omitted/null. `solution` lists the buildings the player placed (everything except the puzzle's own signals, acceptors and blocks), as produced by the game's `PuzzleSerializer.generateSolutionFromGameRoot`.
+
+The server doesn't trust the score sent by the client:
+
+-   **The puzzle must have been opened first.** Each `GET /download` starts a play session (`startedAt`); without one the request fails with `400 PuzzleNotStarted`.
+-   **`time`** (seconds of play) is limited to the time since the session started, plus 5 seconds of tolerance. A negative or non-numeric time fails with `400 InvalidTime`.
+-   **The solution is checked against the puzzle** (`src/utils/solutionValidation.ts`): only known buildings and variants, none of the puzzle's excluded buildings or variants, every tile inside the puzzle bounds (taking size and rotation into account), no overlaps with other buildings or with the puzzle's own. Otherwise `400 InvalidSolution`.
+-   **`componentsUsed` is counted from the solution** (logic gates, 4-input gates, multiplexers, adders, edge detectors and memory); the value sent by the client is ignored. Above the puzzle's `maximumComponents`: `400 TooManyComponents`.
+-   The circuit is **not simulated**: a solution that doesn't pass the truth table (for example an empty one) is still accepted. The accepted solution is stored, so it can be re-checked once the server can simulate.
+
+Updates the user's completion row, the puzzle's averages, likes and computed difficulty. On the **first** completion the user earns trophies (100 / 200 / 400 for easy / medium / hard).
 
 Response: `{ "completeData": { ... }, "trophies": 600 }` (`trophies` is the user's new total, or omitted if it was not the first completion).
 

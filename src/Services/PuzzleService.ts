@@ -237,7 +237,8 @@ class PuzzleService {
     componentsUsed: number,
     nandsUsed: number,
     difficultyRating: number | null,
-    user: User
+    user: User,
+    solution: string
   ): Promise<{ completeData: PuzzleCompleteData; trophies: number | undefined }> {
     const puzzleId = puzzle.id;
 
@@ -252,6 +253,7 @@ class PuzzleService {
       componentsUsed,
       nandsUsed,
       difficultyRating,
+      solution,
       completedAt: new Date(),
     });
 

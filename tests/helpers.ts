@@ -66,3 +66,18 @@ export async function submitPuzzle(user: TestUser, overrides: Record<string, unk
   const response = await api().post("/v1/puzzles/submit").set(user.auth).send(puzzleSubmission(overrides)).expect(201);
   return response.body.id;
 }
+
+/** Opens (downloads) a puzzle and completes it, like the game does */
+export async function completePuzzle(
+  user: TestUser,
+  puzzleId: number,
+  body: Record<string, unknown> = {},
+  expectedStatus = 200
+) {
+  await api().get(`/v1/puzzles/download/${puzzleId}`).set(user.auth).expect(200);
+  return api()
+    .post(`/v1/puzzles/complete/${puzzleId}`)
+    .set(user.auth)
+    .send({ time: 10, solution: [], ...body })
+    .expect(expectedStatus);
+}

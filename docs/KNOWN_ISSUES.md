@@ -20,12 +20,13 @@ Fixed in the commit after the code review:
 -   No rate limiting on login/sign-up (now `RATE_LIMIT_LOGIN` / `RATE_LIMIT_SIGN_UP`).
 -   Submitted puzzles weren't validated (now `src/utils/puzzleValidation.ts`).
 -   No automated tests (now `yarn test`, run in CI).
+-   `POST /complete` trusted the client's time and component count (now the solution is sent and validated, see the open item below).
 -   After completing the **last** official level, the progression query found no "next" level and fell back to "only level 1 unlocked", re-locking the whole campaign.
 
 ## Open: security and production readiness
 
 -   E-mail is not collected (`email = name`), so there is no password recovery.
--   `POST /complete` trusts the client: the solution isn't sent, so time and component counts can't be verified.
+-   `POST /complete` checks the solution's structure and counts its components, but doesn't simulate the circuit: a solution that fails the truth table (or an empty one) is accepted. Fixing it needs the game's simulation running on the server (stored solutions can then be re-checked). The reported time can still be lowered by reopening the puzzle right before completing it.
 -   Submitted text (titles, descriptions, translations) isn't checked for profanity. (The game escapes descriptions before rendering them.)
 -   Most routes have little input validation (see the TODO in `src/Routes/routes.ts`).
 -   SQLite is fine for a single instance. Moving to PostgreSQL only needs a change to the Prisma `datasource`, but the raw SQL in `_findLastFinishedOfficialPuzzle` should be re-tested.

@@ -97,6 +97,10 @@ model PuzzleCompleteData {
   completedAt      DateTime?
   liked            Boolean   @default(false)
   createdAt        DateTime  @default(now())
+  // Last time the user opened (downloaded) the puzzle, limits the time reported on completion
+  startedAt        DateTime?
+  // Buildings of the last accepted solution (JSON, see src/utils/solutionValidation.ts)
+  solution         String?
 
   @@unique([userId, puzzleId])
   @@map("puzzle_complete_data")

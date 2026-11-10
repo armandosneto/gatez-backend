@@ -7,6 +7,9 @@ import { puzzleReportService } from "../Services/PuzzleReportService";
 import { puzzleCompleteDataService } from "../Services/PuzzleCompleteDataService";
 import { puzzleTranslationService } from "../Services/PuzzleTranslationService";
 import { AppError, ErrorType } from "../Errors";
+import { parseAndValidatePuzzleData } from "../utils/puzzleValidation";
+import { validateSolution } from "../utils/solutionValidation";
+import { limitTimeToSession } from "../utils/timeUtil";
 
 type PuzzleSubmit = Pick<
   Puzzle,
@@ -96,21 +99,45 @@ class PuzzlesController {
 
     const user = response.locals.user;
 
-    const { time, liked, componentsUsed, nandsUsed = 0 } = request.body;
+    const { liked, nandsUsed = 0 } = request.body;
     const difficultyRating = getDifficultyByDifficultyLabel(request.body.difficultyRating);
 
     if (difficultyRating === -1) {
       throw new AppError("Invalid difficulty rating!", 400, ErrorType.InvalidDifficulty);
     }
 
+    // The score is counted from the solution, not trusted from the client
+    let solution;
+    try {
+      solution = validateSolution(request.body.solution, parseAndValidatePuzzleData(puzzle.data));
+    } catch (error) {
+      throw new AppError(`Invalid solution: ${(error as Error).message}`, 400, ErrorType.InvalidSolution);
+    }
+
+    if (puzzle.maximumComponents && solution.componentsUsed > puzzle.maximumComponents) {
+      throw new AppError("Solution uses more components than allowed", 400, ErrorType.TooManyComponents);
+    }
+
+    // The play session starts when the puzzle is downloaded
+    const previous = await puzzleCompleteDataService.getByPuzzleAndUser(puzzleId, user.id);
+    if (!previous?.startedAt) {
+      throw new AppError("The puzzle must be opened before completing it", 400, ErrorType.PuzzleNotStarted);
+    }
+
+    const time = limitTimeToSession(request.body.time, previous.startedAt);
+    if (time === null) {
+      throw new AppError("Invalid time", 400, ErrorType.InvalidTime);
+    }
+
     const { completeData, trophies } = await puzzleService.completePuzzle(
       puzzle,
       time,
       liked,
-      componentsUsed,
+      solution.componentsUsed,
       nandsUsed,
       difficultyRating,
-      user
+      user,
+      JSON.stringify(solution.buildings)
     );
 
     return response.json({
@@ -134,6 +161,9 @@ class PuzzlesController {
     if (!completeData) {
       completeData = await puzzleCompleteDataService.create(puzzle, userId);
     }
+
+    // Every time the puzzle is opened a new play session starts
+    completeData = await puzzleCompleteDataService.update(puzzleId, userId, { startedAt: new Date() });
 
     puzzle.downloads++;
 

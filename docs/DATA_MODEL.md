@@ -49,7 +49,7 @@ erDiagram
 
 ### `puzzle_complete_data`
 
-One row per (user, puzzle), **created when the user downloads the puzzle**. `completedAt` is set when they solve it; `timeTaken`, `componentsUsed`, `nandsUsed`, `difficultyRating` (0 easy, 1 medium, 2 hard) and `liked` are overwritten on each completion. Statistics on the puzzle are only incremented on the first completion (like/rating changes are reconciled afterwards).
+One row per (user, puzzle), **created when the user downloads the puzzle**. `completedAt` is set when they solve it; `timeTaken`, `componentsUsed`, `nandsUsed`, `difficultyRating` (0 easy, 1 medium, 2 hard) and `liked` are overwritten on each completion. Statistics on the puzzle are only incremented on the first completion (like/rating changes are reconciled afterwards). `startedAt` is updated on every download (the current play session, which limits the reported time) and `solution` holds the buildings of the last accepted solution, as JSON.
 
 ### `puzzle_translations`
 

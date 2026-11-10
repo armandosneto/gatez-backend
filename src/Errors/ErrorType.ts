@@ -32,4 +32,8 @@ export enum ErrorType {
   InvalidPage,
   InvalidPageSize,
   TooManyRequests,
+  InvalidSolution,
+  TooManyComponents,
+  PuzzleNotStarted,
+  InvalidTime,
 }
